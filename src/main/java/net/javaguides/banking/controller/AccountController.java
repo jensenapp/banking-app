@@ -4,10 +4,7 @@ import net.javaguides.banking.dto.AccountDto;
 import net.javaguides.banking.service.AccountService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/accounts")
@@ -23,6 +20,12 @@ public class AccountController {
     public ResponseEntity<AccountDto> addAccount(@RequestBody AccountDto accountDto){
         AccountDto account = accountService.createAccount(accountDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(account);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<AccountDto> getAccountById(@PathVariable Long id){
+        AccountDto accountById = accountService.getAccountById(id);
+        return ResponseEntity.status(HttpStatus.OK).body(accountById);
     }
 
 }
