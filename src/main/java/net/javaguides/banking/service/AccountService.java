@@ -11,4 +11,5 @@ public interface AccountService {
     AccountDto deposit(Long id,Double amount);
     AccountDto withdraw(Long id,Double amount);
     List<AccountDto> getAllAccounts();
+    void deleteAccount(Long id);
 }

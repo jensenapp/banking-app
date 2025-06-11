@@ -70,4 +70,10 @@ public class AccountServiceImpl implements AccountService {
                         collect(Collectors.toList());
         return accountDtoList;
     }
+
+    @Override
+    public void deleteAccount(Long id) {
+        Account account = accountRepository.findById(id).orElseThrow(() -> new RuntimeException("Account does not exist"));
+        accountRepository.deleteById(id);
+    }
 }
