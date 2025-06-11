@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -47,4 +48,9 @@ public class AccountController {
         return ResponseEntity.status(HttpStatus.OK).body(accountDto);
     }
 
+    @GetMapping
+    public ResponseEntity<List<AccountDto>> getAllAccounts(){
+        List<AccountDto> allAccounts = accountService.getAllAccounts();
+        return ResponseEntity.ok(allAccounts);
+    }
 }

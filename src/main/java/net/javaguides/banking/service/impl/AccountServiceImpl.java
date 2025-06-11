@@ -7,8 +7,11 @@ import net.javaguides.banking.repository.AccountRepository;
 import net.javaguides.banking.service.AccountService;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @Service
 public class AccountServiceImpl implements AccountService {
@@ -55,5 +58,16 @@ public class AccountServiceImpl implements AccountService {
         accountRepository.save(account);
         AccountDto accountDto = AccountMapper.mapTOAccountDto(account);
         return accountDto;
+    }
+
+    @Override
+    public List<AccountDto> getAllAccounts() {
+        List<Account> accounts = accountRepository.findAll();
+
+        List<AccountDto> accountDtoList =
+                accounts.stream().
+                        map(account -> AccountMapper.mapTOAccountDto(account)).
+                        collect(Collectors.toList());
+        return accountDtoList;
     }
 }
