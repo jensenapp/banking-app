@@ -6,7 +6,7 @@ import net.javaguides.banking.entity.Account;
 public class AccountMapper {
 
     public static Account mapTOAccount(AccountDto accountDto){
-     return  new Account(accountDto.getId(),accountDto.getAccountHolderName(),accountDto.getBalance());
+     return  new Account(accountDto.id(),accountDto.accountHolderName(),accountDto.balance());
     }
 
     public static AccountDto mapTOAccountDto(Account account){
