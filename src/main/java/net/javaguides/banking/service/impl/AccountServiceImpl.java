@@ -1,14 +1,18 @@
 package net.javaguides.banking.service.impl;
 
+import jakarta.transaction.Transactional;
 import net.javaguides.banking.dto.AccountDto;
 import net.javaguides.banking.dto.TransferFundDTO;
 import net.javaguides.banking.entity.Account;
+import net.javaguides.banking.entity.Transaction;
 import net.javaguides.banking.exception.AccountException;
 import net.javaguides.banking.mapper.AccountMapper;
 import net.javaguides.banking.repository.AccountRepository;
+import net.javaguides.banking.repository.TransactionRepository;
 import net.javaguides.banking.service.AccountService;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -19,10 +23,15 @@ import java.util.stream.Collectors;
 public class AccountServiceImpl implements AccountService {
 
     private AccountRepository accountRepository;
+    private TransactionRepository transactionRepository;
 
-    public AccountServiceImpl(AccountRepository accountRepository) {
+    private static final String TRANSACTION_TYPE_DEPOSIT="deposit";
+
+    public AccountServiceImpl(AccountRepository accountRepository, TransactionRepository transactionRepository) {
         this.accountRepository = accountRepository;
+        this.transactionRepository = transactionRepository;
     }
+
 
     @Override
     public AccountDto createAccount(AccountDto accountDto) {
@@ -38,6 +47,7 @@ public class AccountServiceImpl implements AccountService {
         return AccountMapper.mapTOAccountDto(account);
     }
 
+    @Transactional
     @Override
     public AccountDto deposit(Long id, Double amount) {
 
@@ -49,6 +59,15 @@ public class AccountServiceImpl implements AccountService {
         Account saveAccount = accountRepository.save(account);
 
         AccountDto accountDto = AccountMapper.mapTOAccountDto(saveAccount);
+
+        // 記錄交易
+        Transaction transaction = new Transaction();
+        transaction.setAccountId(id);
+        transaction.setAmount(amount);
+        transaction.setTimestamp(LocalDateTime.now());
+        transaction.setTransactionType(TRANSACTION_TYPE_DEPOSIT);
+        transactionRepository.save(transaction);
+
 
         return accountDto;
     }
