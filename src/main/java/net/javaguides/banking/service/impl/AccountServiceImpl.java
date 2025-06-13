@@ -26,6 +26,7 @@ public class AccountServiceImpl implements AccountService {
     private TransactionRepository transactionRepository;
 
     private static final String TRANSACTION_TYPE_DEPOSIT="deposit";
+    private static final String TRANSACTION_TYPE_WITHDRAW="withdraw";
 
     public AccountServiceImpl(AccountRepository accountRepository, TransactionRepository transactionRepository) {
         this.accountRepository = accountRepository;
@@ -84,6 +85,16 @@ public class AccountServiceImpl implements AccountService {
         account.setBalance(account.getBalance() - amount);
         accountRepository.save(account);
         AccountDto accountDto = AccountMapper.mapTOAccountDto(account);
+
+        Transaction transaction = new Transaction();
+
+        transaction.setAccountId(id);
+        transaction.setAmount(amount);
+        transaction.setTimestamp(LocalDateTime.now());
+        transaction.setTransactionType(TRANSACTION_TYPE_WITHDRAW);
+
+        transactionRepository.save(transaction);
+
         return accountDto;
     }
 
