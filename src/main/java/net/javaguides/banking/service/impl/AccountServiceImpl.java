@@ -11,6 +11,8 @@ import net.javaguides.banking.mapper.AccountMapper;
 import net.javaguides.banking.repository.AccountRepository;
 import net.javaguides.banking.repository.TransactionRepository;
 import net.javaguides.banking.service.AccountService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -150,10 +152,10 @@ public class AccountServiceImpl implements AccountService {
 
 
     @Override
-    public List<TransactionDTO> getAccountTransactions(Long accountId) {
+    public Page<TransactionDTO> getAccountTransactions(Long accountId, Pageable pageable) {
 
-        List<Transaction> transactions = transactionRepository.findByAccountIdOrderByTimestampDesc(accountId);
-
+        Page<Transaction> transactions = transactionRepository.findByAccountIdOrderByTimestampDesc(accountId,pageable);
+        Page<TransactionDTO> transactionDTOPage = transactions.map(this::convertEntityToDTO);
 //        List<TransactionDTO> transactionDTOList = new ArrayList<>();
 //
 //        for (Transaction transaction : transactionList) {
@@ -161,12 +163,14 @@ public class AccountServiceImpl implements AccountService {
 //            transactionDTOList.add(transactionDTO);
 //        }
 
-        List<TransactionDTO> collect =
-                transactions.stream().
-                map(transaction -> convertEntityToDTO(transaction)).
-                collect(Collectors.toList());
+//        List<TransactionDTO> collect =
+//                transactions.stream().
+//                map(transaction -> convertEntityToDTO(transaction)).
+//                collect(Collectors.toList());
 
-        return collect;
+
+
+        return transactionDTOPage;
     }
 
 

@@ -3,6 +3,8 @@ package net.javaguides.banking.service;
 import net.javaguides.banking.dto.AccountDto;
 import net.javaguides.banking.dto.TransactionDTO;
 import net.javaguides.banking.dto.TransferFundDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -17,5 +19,5 @@ public interface AccountService {
 
     void transferFunds(TransferFundDTO transferFundDTO);
 
-    List<TransactionDTO> getAccountTransactions(Long accountId);
+    Page<TransactionDTO> getAccountTransactions(Long accountId, Pageable pageable);
 }
