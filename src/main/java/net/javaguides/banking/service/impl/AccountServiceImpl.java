@@ -2,6 +2,7 @@ package net.javaguides.banking.service.impl;
 
 import jakarta.transaction.Transactional;
 import net.javaguides.banking.dto.AccountDto;
+import net.javaguides.banking.dto.TransactionDTO;
 import net.javaguides.banking.dto.TransferFundDTO;
 import net.javaguides.banking.entity.Account;
 import net.javaguides.banking.entity.Transaction;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -25,9 +27,9 @@ public class AccountServiceImpl implements AccountService {
     private AccountRepository accountRepository;
     private TransactionRepository transactionRepository;
 
-    private static final String TRANSACTION_TYPE_DEPOSIT="deposit";
-    private static final String TRANSACTION_TYPE_WITHDRAW="withdraw";
-    private static final String TRANSACTION_TYPE_TRANSACTION="transaction";
+    private static final String TRANSACTION_TYPE_DEPOSIT = "deposit";
+    private static final String TRANSACTION_TYPE_WITHDRAW = "withdraw";
+    private static final String TRANSACTION_TYPE_TRANSACTION = "transaction";
 
     public AccountServiceImpl(AccountRepository accountRepository, TransactionRepository transactionRepository) {
         this.accountRepository = accountRepository;
@@ -123,7 +125,7 @@ public class AccountServiceImpl implements AccountService {
         // 2. 檢索轉入帳戶
         Account toAccount = accountRepository.findById(transferFundDTO.toAccountId()).orElseThrow(() -> new AccountException("Account does not exist"));
 
-        if (fromAccount.getBalance()<transferFundDTO.amount()){
+        if (fromAccount.getBalance() < transferFundDTO.amount()) {
             throw new AccountException("Insufficient amount");
         }
 
@@ -144,4 +146,38 @@ public class AccountServiceImpl implements AccountService {
         transaction.setTransactionType(TRANSACTION_TYPE_TRANSACTION);
         transactionRepository.save(transaction);
     }
+
+
+
+    @Override
+    public List<TransactionDTO> getAccountTransactions(Long accountId) {
+
+        List<Transaction> transactions = transactionRepository.findByAccountIdOrderByTimestampDesc(accountId);
+
+//        List<TransactionDTO> transactionDTOList = new ArrayList<>();
+//
+//        for (Transaction transaction : transactionList) {
+//            TransactionDTO transactionDTO = convertEntityToDTO(transaction);
+//            transactionDTOList.add(transactionDTO);
+//        }
+
+        List<TransactionDTO> collect =
+                transactions.stream().
+                map(transaction -> convertEntityToDTO(transaction)).
+                collect(Collectors.toList());
+
+        return collect;
+    }
+
+
+  private TransactionDTO convertEntityToDTO(Transaction transaction) {
+        return new TransactionDTO(
+                transaction.getId(),
+                transaction.getAccountId(),
+                transaction.getAmount(),
+                transaction.getTransactionType(),
+                transaction.getTimestamp());
+    }
+
+
 }
