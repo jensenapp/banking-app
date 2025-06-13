@@ -27,6 +27,7 @@ public class AccountServiceImpl implements AccountService {
 
     private static final String TRANSACTION_TYPE_DEPOSIT="deposit";
     private static final String TRANSACTION_TYPE_WITHDRAW="withdraw";
+    private static final String TRANSACTION_TYPE_TRANSACTION="transaction";
 
     public AccountServiceImpl(AccountRepository accountRepository, TransactionRepository transactionRepository) {
         this.accountRepository = accountRepository;
@@ -86,8 +87,8 @@ public class AccountServiceImpl implements AccountService {
         accountRepository.save(account);
         AccountDto accountDto = AccountMapper.mapTOAccountDto(account);
 
+        // 記錄交易
         Transaction transaction = new Transaction();
-
         transaction.setAccountId(id);
         transaction.setAmount(amount);
         transaction.setTimestamp(LocalDateTime.now());
@@ -121,6 +122,11 @@ public class AccountServiceImpl implements AccountService {
         Account fromAccount = accountRepository.findById(transferFundDTO.fromAccountId()).orElseThrow(() -> new AccountException("Account does not exist"));
         // 2. 檢索轉入帳戶
         Account toAccount = accountRepository.findById(transferFundDTO.toAccountId()).orElseThrow(() -> new AccountException("Account does not exist"));
+
+        if (fromAccount.getBalance()<transferFundDTO.amount()){
+            throw new AccountException("Insufficient amount");
+        }
+
         // 3. 從轉出帳戶扣款
         fromAccount.setBalance(fromAccount.getBalance() - transferFundDTO.amount());
         // 4. 轉入帳戶存入金額
@@ -129,5 +135,13 @@ public class AccountServiceImpl implements AccountService {
         accountRepository.save(fromAccount);
         accountRepository.save(toAccount);
 
+        // 記錄交易（僅記錄來源帳戶的轉出交易，目標帳戶可另行記錄）
+        Transaction transaction = new Transaction();
+
+        transaction.setAccountId(transferFundDTO.fromAccountId());
+        transaction.setAmount(transferFundDTO.amount());
+        transaction.setTimestamp(LocalDateTime.now());
+        transaction.setTransactionType(TRANSACTION_TYPE_TRANSACTION);
+        transactionRepository.save(transaction);
     }
 }
