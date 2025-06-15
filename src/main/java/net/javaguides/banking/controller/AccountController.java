@@ -9,6 +9,7 @@ import net.javaguides.banking.service.AccountService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -52,14 +53,24 @@ public class AccountController {
 
     @PutMapping("/{id}/withdraw")
     public ResponseEntity<AccountDto> withdraw(@PathVariable Long id, @RequestBody Map<String, Double> request) {
-        Double withdraw = request.get("withdraw");
-        AccountDto accountDto = accountService.withdraw(id, withdraw);
+        Double amount = request.get("amount");
+        AccountDto accountDto = accountService.withdraw(id, amount);
         return ResponseEntity.status(HttpStatus.OK).body(accountDto);
     }
 
     @GetMapping
-    public ResponseEntity<List<AccountDto>> getAllAccounts() {
-        List<AccountDto> allAccounts = accountService.getAllAccounts();
+    public ResponseEntity<Page<AccountDto>> getAllAccounts(@RequestParam (defaultValue = "0") @Min(0) int pageNo,
+                                                           @RequestParam (defaultValue = "3") @Min(1) @Max(100) int pageSize,
+                                                           @RequestParam (defaultValue = "id") String sortBy,
+                                                           @RequestParam (defaultValue = "asc") String sortDir) {
+
+       Sort sort= sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+
+
+        Pageable pageable = PageRequest.of(pageNo, pageSize, sort);
+
+        Page<AccountDto> allAccounts = accountService.getAllAccounts(pageable);
+
         return ResponseEntity.ok(allAccounts);
     }
 

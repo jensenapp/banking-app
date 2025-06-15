@@ -104,14 +104,13 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public List<AccountDto> getAllAccounts() {
-        List<Account> accounts = accountRepository.findAll();
+    public Page<AccountDto> getAllAccounts(Pageable pageable) {
 
-        List<AccountDto> accountDtoList =
-                accounts.stream().
-                        map(account -> AccountMapper.mapTOAccountDto(account)).
-                        collect(Collectors.toList());
-        return accountDtoList;
+        Page<Account> accounts = accountRepository.findAll(pageable);
+
+        Page<AccountDto> accountDtoPage = accounts.map(account -> AccountMapper.mapTOAccountDto(account));
+
+        return accountDtoPage;
     }
 
     @Override
