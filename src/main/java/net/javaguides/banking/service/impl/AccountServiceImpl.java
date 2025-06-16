@@ -124,12 +124,33 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public void transferFunds(TransferFundDTO transferFundDTO) {
-        // 1. 檢索轉出帳戶
-        Account fromAccount = accountRepository.findById(transferFundDTO.fromAccountId()).orElseThrow(() -> new AccountException("Account does not exist"));
-        // 2. 檢索轉入帳戶
-        Account toAccount = accountRepository.findById(transferFundDTO.toAccountId()).orElseThrow(() -> new AccountException("Account does not exist"));
 
-        if (fromAccount.getBalance().compareTo(transferFundDTO.amount())<0) {
+        Long fromAccountId = transferFundDTO.fromAccountId();
+        Long toAccountId = transferFundDTO.toAccountId();
+
+
+        Account account1, account2;
+
+        if (fromAccountId < toAccountId) {
+            account1 = accountRepository.findById(fromAccountId).orElseThrow(() -> new AccountException("Account does not exist"));
+            account2 = accountRepository.findById(toAccountId).orElseThrow(() -> new AccountException("Account does not exist"));
+        } else {
+            account2 = accountRepository.findById(toAccountId).orElseThrow(() -> new AccountException("Account does not exist"));
+            account1 = accountRepository.findById(fromAccountId).orElseThrow(() -> new AccountException("Account does not exist"));
+        }
+        // 找出哪個是轉出帳戶，哪個是轉入帳戶
+
+        Account fromAccount = account1.getId().equals(fromAccountId) ? account1 : account2;
+        Account toAccount = account2.getId().equals(toAccountId) ? account2 : account1;
+
+
+//        // 1. 檢索轉出帳戶
+//        Account fromAccount = accountRepository.findById(transferFundDTO.fromAccountId()).orElseThrow(() -> new AccountException("Account does not exist"));
+//        // 2. 檢索轉入帳戶
+//         Account toAccount = accountRepository.findById(transferFundDTO.toAccountId()).orElseThrow(() -> new AccountException("Account does not exist"));
+
+
+        if (fromAccount.getBalance().compareTo(transferFundDTO.amount()) < 0) {
             throw new AccountException("Insufficient amount");
         }
 
