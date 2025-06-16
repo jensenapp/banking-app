@@ -1,6 +1,5 @@
 package net.javaguides.banking.service.impl;
 
-import jakarta.transaction.Transactional;
 import net.javaguides.banking.dto.AccountDto;
 import net.javaguides.banking.dto.TransactionDTO;
 import net.javaguides.banking.dto.TransferFundDTO;
@@ -14,6 +13,7 @@ import net.javaguides.banking.service.AccountService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+@Transactional
 @Service
 public class AccountServiceImpl implements AccountService {
 
@@ -47,13 +48,13 @@ public class AccountServiceImpl implements AccountService {
         return accountDto1;
     }
 
+    @Transactional(readOnly = true)
     @Override
     public AccountDto getAccountById(Long id) {
         Account account = accountRepository.findById(id).orElseThrow(() -> new AccountException("Account does not exist"));
         return AccountMapper.mapTOAccountDto(account);
     }
 
-    @Transactional
     @Override
     public AccountDto deposit(Long id, Double amount) {
 
@@ -103,6 +104,7 @@ public class AccountServiceImpl implements AccountService {
         return accountDto;
     }
 
+    @Transactional(readOnly = true)
     @Override
     public Page<AccountDto> getAllAccounts(Pageable pageable) {
 
@@ -149,11 +151,11 @@ public class AccountServiceImpl implements AccountService {
     }
 
 
-
+    @Transactional(readOnly = true)
     @Override
     public Page<TransactionDTO> getAccountTransactions(Long accountId, Pageable pageable) {
 
-        Page<Transaction> transactions = transactionRepository.findByAccountIdOrderByTimestampDesc(accountId,pageable);
+        Page<Transaction> transactions = transactionRepository.findByAccountIdOrderByTimestampDesc(accountId, pageable);
         Page<TransactionDTO> transactionDTOPage = transactions.map(this::convertEntityToDTO);
 //        List<TransactionDTO> transactionDTOList = new ArrayList<>();
 //
@@ -168,12 +170,11 @@ public class AccountServiceImpl implements AccountService {
 //                collect(Collectors.toList());
 
 
-
         return transactionDTOPage;
     }
 
 
-  private TransactionDTO convertEntityToDTO(Transaction transaction) {
+    private TransactionDTO convertEntityToDTO(Transaction transaction) {
         return new TransactionDTO(
                 transaction.getId(),
                 transaction.getAccountId(),
