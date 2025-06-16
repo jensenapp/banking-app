@@ -3,6 +3,7 @@ package net.javaguides.banking.controller;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import net.javaguides.banking.dto.AccountDto;
+import net.javaguides.banking.dto.PageResponseDTO;
 import net.javaguides.banking.dto.TransactionDTO;
 import net.javaguides.banking.dto.TransferFundDTO;
 import net.javaguides.banking.service.AccountService;
@@ -59,19 +60,27 @@ public class AccountController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<AccountDto>> getAllAccounts(@RequestParam (defaultValue = "0") @Min(0) int pageNo,
-                                                           @RequestParam (defaultValue = "3") @Min(1) @Max(100) int pageSize,
-                                                           @RequestParam (defaultValue = "id") String sortBy,
-                                                           @RequestParam (defaultValue = "asc") String sortDir) {
+    public ResponseEntity<PageResponseDTO<AccountDto>> getAllAccounts(@RequestParam(defaultValue = "0") @Min(0) int pageNo,
+                                                                      @RequestParam(defaultValue = "3") @Min(1) @Max(100) int pageSize,
+                                                                      @RequestParam(defaultValue = "id") String sortBy,
+                                                                      @RequestParam(defaultValue = "asc") String sortDir) {
 
-       Sort sort= sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
 
 
         Pageable pageable = PageRequest.of(pageNo, pageSize, sort);
 
         Page<AccountDto> allAccounts = accountService.getAllAccounts(pageable);
 
-        return ResponseEntity.ok(allAccounts);
+        PageResponseDTO<AccountDto> pageResponseDTO = new PageResponseDTO<>(
+                allAccounts.getContent(),
+                allAccounts.getNumber(),
+                allAccounts.getSize(),
+                allAccounts.getTotalElements(),
+                allAccounts.getTotalPages(),
+                allAccounts.isLast());
+
+        return ResponseEntity.ok(pageResponseDTO);
     }
 
     @DeleteMapping("/{id}")
@@ -87,10 +96,21 @@ public class AccountController {
     }
 
     @GetMapping("/{accountId}/transactions")
-    public ResponseEntity<Page<TransactionDTO>> fetchAccountTransactions(@PathVariable Long accountId, @RequestParam(defaultValue = "0") @Min(0)  int pageNo, @RequestParam(defaultValue = "3") @Min(1)@Max(100) int pageSize) {
+    public ResponseEntity<PageResponseDTO<TransactionDTO>> fetchAccountTransactions(@PathVariable Long accountId, @RequestParam(defaultValue = "0") @Min(0) int pageNo, @RequestParam(defaultValue = "3") @Min(1) @Max(100) int pageSize) {
+
         Pageable pageable = PageRequest.of(pageNo, pageSize);
 
-        Page<TransactionDTO> accountTransactions = accountService.getAccountTransactions(accountId, pageable);
-        return ResponseEntity.ok(accountTransactions);
+        Page<TransactionDTO> page = accountService.getAccountTransactions(accountId, pageable);
+
+        PageResponseDTO<TransactionDTO> transactionDTOPageResponseDTO =
+                new PageResponseDTO<TransactionDTO>(
+                        page.getContent(),
+                        page.getNumber(),
+                        page.getSize(),
+                        page.getTotalElements(),
+                        page.getTotalPages(),
+                        page.isLast());
+
+        return ResponseEntity.ok(transactionDTOPageResponseDTO);
     }
 }
