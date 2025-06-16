@@ -1,8 +1,6 @@
 package net.javaguides.banking.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
 
 //@Data
 //@AllArgsConstructor
@@ -12,7 +10,7 @@ import lombok.NoArgsConstructor;
 //    private String accountHolderName;
 //    private double balance;
 //}
-public record AccountDto(Long id, String accountHolderName, double balance){
+public record AccountDto(Long id, String accountHolderName, BigDecimal balance){
 
 }
 

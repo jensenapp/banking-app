@@ -3,6 +3,7 @@ package net.javaguides.banking.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -18,7 +19,7 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Long accountId;
-    private Double amount;
+    private BigDecimal amount;
     private String transactionType;
     private LocalDateTime timestamp;
 

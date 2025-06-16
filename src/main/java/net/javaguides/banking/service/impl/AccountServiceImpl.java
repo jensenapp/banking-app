@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,12 +57,12 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public AccountDto deposit(Long id, Double amount) {
+    public AccountDto deposit(Long id, BigDecimal amount) {
 
         Account account = accountRepository.
                 findById(id).orElseThrow(() -> new AccountException("Account does not exist"));
 
-        account.setBalance(account.getBalance() + amount);
+        account.setBalance(account.getBalance().add(amount));
 
         Account saveAccount = accountRepository.save(account);
 
@@ -80,15 +81,15 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public AccountDto withdraw(Long id, Double amount) {
+    public AccountDto withdraw(Long id, BigDecimal amount) {
         Account account = accountRepository.findById(id).orElseThrow(() -> new AccountException("Account does not exist"));
 
-        if (account.getBalance() < amount) {
+        if (account.getBalance().compareTo(amount) < 0) {
             throw new AccountException("Insufficient amount");
         }
 
 
-        account.setBalance(account.getBalance() - amount);
+        account.setBalance(account.getBalance().subtract(amount));
         accountRepository.save(account);
         AccountDto accountDto = AccountMapper.mapTOAccountDto(account);
 
@@ -128,14 +129,14 @@ public class AccountServiceImpl implements AccountService {
         // 2. 檢索轉入帳戶
         Account toAccount = accountRepository.findById(transferFundDTO.toAccountId()).orElseThrow(() -> new AccountException("Account does not exist"));
 
-        if (fromAccount.getBalance() < transferFundDTO.amount()) {
+        if (fromAccount.getBalance().compareTo(transferFundDTO.amount())<0) {
             throw new AccountException("Insufficient amount");
         }
 
         // 3. 從轉出帳戶扣款
-        fromAccount.setBalance(fromAccount.getBalance() - transferFundDTO.amount());
+        fromAccount.setBalance(fromAccount.getBalance().subtract(transferFundDTO.amount()));
         // 4. 轉入帳戶存入金額
-        toAccount.setBalance(toAccount.getBalance() + transferFundDTO.amount());
+        toAccount.setBalance(toAccount.getBalance().add(transferFundDTO.amount()));
         // 5. 儲存更新
         accountRepository.save(fromAccount);
         accountRepository.save(toAccount);
