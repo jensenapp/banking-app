@@ -1,11 +1,8 @@
-# Spring Boot 銀行應用程式後端 (Banking Application Backend)
-
-![Java](https://img.shields.io/badge/Java-17+-blue?style=for-the-badge&logo=openjdk)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-green?style=for-the-badge&logo=spring)
-![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
+# Spring Boot 高併發銀行後端系統 (High-Concurrency Banking Backend System)
 
 ## 專案概述 (Project Overview)
-本專案是一個基於 Spring Boot 的 RESTful API，用於模擬一套基礎但功能完整的銀行核心系統。系統支援客戶帳戶管理、資金存提、帳戶間轉帳以及交易歷史追蹤等功能，旨在提供一個結構清晰、易於擴充且遵循現代軟體開發實踐的後端服務。
+
+本專案是一個基於 Spring Boot 的 RESTful API，旨在**展示一個能夠處理高併發金融交易的現代化銀行後端系統的設計與實現**。系統不僅提供完整的客戶帳戶管理、資金存提、轉帳及交易追蹤功能，更在架構層面深入考量了**資料一致性、執行緒安全與系統擴展性**，使其成為一份展現扎實後端工程能力的最佳實踐範例。
 
 ---
 
