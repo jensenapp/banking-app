@@ -1,5 +1,6 @@
 package net.javaguides.banking.controller;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import net.javaguides.banking.dto.AccountDto;
@@ -32,7 +33,7 @@ public class AccountController {
     }
 
     @PostMapping
-    public ResponseEntity<AccountDto> addAccount(@RequestBody AccountDto accountDto) {
+    public ResponseEntity<AccountDto> addAccount(@Valid @RequestBody AccountDto accountDto) {
         AccountDto account = accountService.createAccount(accountDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(account);
     }
@@ -91,7 +92,7 @@ public class AccountController {
     }
 
     @PostMapping("/transfer")
-    public ResponseEntity<String> transferFund(@RequestBody TransferFundDTO transferFundDTO) {
+    public ResponseEntity<String> transferFund(@Valid @RequestBody TransferFundDTO transferFundDTO) {
         accountService.transferFunds(transferFundDTO);
         return ResponseEntity.ok("transfer successful");
     }
