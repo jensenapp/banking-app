@@ -180,6 +180,25 @@
     }
     ```
 
+---
+
+## 🗃️ 資料庫結構 (Database Schema)
+本專案包含兩個核心資料表：`accounts` 和 `transactions`，其關係如下：
+
+```
++---------------------+      +------------------------+
+|      accounts       |      |      transactions      |
++---------------------+      +------------------------+
+| PK id (BIGINT)      |      | PK id (BIGINT)         |
+| account_holder_name |      | FK account_id (BIGINT) |---(1..n)---(1..1)
+| balance (DOUBLE)    |      | amount (DOUBLE)        |
++---------------------+      | transaction_type (VARCHAR) |
+                             | timestamp (TIMESTAMP)  |
+                             +------------------------+
+```
+* **關聯**: 一個 `Account` 可以擁有多筆 `Transaction` 紀錄 (一對多)。
+
+
 -----
 
 ## 🔮 未來展望 (Future Work)
