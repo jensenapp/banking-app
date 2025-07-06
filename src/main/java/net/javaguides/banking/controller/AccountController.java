@@ -3,10 +3,7 @@ package net.javaguides.banking.controller;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import net.javaguides.banking.dto.AccountDto;
-import net.javaguides.banking.dto.PageResponseDTO;
-import net.javaguides.banking.dto.TransactionDTO;
-import net.javaguides.banking.dto.TransferFundDTO;
+import net.javaguides.banking.dto.*;
 import net.javaguides.banking.service.AccountService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -45,9 +42,9 @@ public class AccountController {
     }
 
     @PutMapping("/{id}/deposit")
-    public ResponseEntity<AccountDto> deposit(@PathVariable Long id, @RequestBody Map<String, BigDecimal> request) {
+    public ResponseEntity<AccountDto> deposit(@PathVariable Long id, @Valid @RequestBody AmountRequestDto amountRequestDto) {
 
-        BigDecimal amount = request.get("amount");
+        BigDecimal amount = amountRequestDto.amount();
 
         AccountDto deposit = accountService.deposit(id, amount);
 
@@ -55,8 +52,8 @@ public class AccountController {
     }
 
     @PutMapping("/{id}/withdraw")
-    public ResponseEntity<AccountDto> withdraw(@PathVariable Long id, @RequestBody Map<String, BigDecimal> request) {
-        BigDecimal amount = request.get("amount");
+    public ResponseEntity<AccountDto> withdraw(@PathVariable Long id, @Valid @RequestBody AmountRequestDto amountRequestDto) {
+        BigDecimal amount = amountRequestDto.amount();
         AccountDto accountDto = accountService.withdraw(id, amount);
         return ResponseEntity.status(HttpStatus.OK).body(accountDto);
     }
