@@ -129,14 +129,18 @@ public class AccountServiceImpl implements AccountService {
         Long toAccountId = transferFundDTO.toAccountId();
 
 
+        if (fromAccountId.equals(toAccountId)){
+            throw new AccountException("不能轉帳到相同帳戶");
+        }
+
         Account account1, account2;
 
         if (fromAccountId < toAccountId) {
-            account1 = accountRepository.findById(fromAccountId).orElseThrow(() -> new AccountException("Account does not exist"));
-            account2 = accountRepository.findById(toAccountId).orElseThrow(() -> new AccountException("Account does not exist"));
+            account1 = accountRepository.findByIdForUpdate(fromAccountId).orElseThrow(() -> new AccountException("Account does not exist"));
+            account2 = accountRepository.findByIdForUpdate(toAccountId).orElseThrow(() -> new AccountException("Account does not exist"));
         } else {
-            account2 = accountRepository.findById(toAccountId).orElseThrow(() -> new AccountException("Account does not exist"));
-            account1 = accountRepository.findById(fromAccountId).orElseThrow(() -> new AccountException("Account does not exist"));
+            account2 = accountRepository.findByIdForUpdate(toAccountId).orElseThrow(() -> new AccountException("Account does not exist"));
+            account1 = accountRepository.findByIdForUpdate(fromAccountId).orElseThrow(() -> new AccountException("Account does not exist"));
         }
         // 找出哪個是轉出帳戶，哪個是轉入帳戶
 
