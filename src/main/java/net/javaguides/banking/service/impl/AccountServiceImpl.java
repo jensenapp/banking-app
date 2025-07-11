@@ -5,6 +5,7 @@ import net.javaguides.banking.dto.TransactionDTO;
 import net.javaguides.banking.dto.TransferFundDTO;
 import net.javaguides.banking.entity.Account;
 import net.javaguides.banking.entity.Transaction;
+import net.javaguides.banking.enums.TransactionType;
 import net.javaguides.banking.exception.AccountException;
 import net.javaguides.banking.mapper.AccountMapper;
 import net.javaguides.banking.repository.AccountRepository;
@@ -29,11 +30,14 @@ import java.util.stream.Collectors;
 public class AccountServiceImpl implements AccountService {
 
     private AccountRepository accountRepository;
+
     private TransactionRepository transactionRepository;
 
-    private static final String TRANSACTION_TYPE_DEPOSIT = "deposit";
-    private static final String TRANSACTION_TYPE_WITHDRAW = "withdraw";
-    private static final String TRANSACTION_TYPE_TRANSACTION = "transaction";
+
+
+//    private static final String TRANSACTION_TYPE_DEPOSIT = "deposit";
+//    private static final String TRANSACTION_TYPE_WITHDRAW = "withdraw";
+//    private static final String TRANSACTION_TYPE_TRANSACTION = "transaction";
 
     public AccountServiceImpl(AccountRepository accountRepository, TransactionRepository transactionRepository) {
         this.accountRepository = accountRepository;
@@ -73,7 +77,7 @@ public class AccountServiceImpl implements AccountService {
         transaction.setAccountId(id);
         transaction.setAmount(amount);
         transaction.setTimestamp(LocalDateTime.now());
-        transaction.setTransactionType(TRANSACTION_TYPE_DEPOSIT);
+        transaction.setTransactionType(TransactionType.DEPOSIT);
         transactionRepository.save(transaction);
 
 
@@ -98,7 +102,7 @@ public class AccountServiceImpl implements AccountService {
         transaction.setAccountId(id);
         transaction.setAmount(amount);
         transaction.setTimestamp(LocalDateTime.now());
-        transaction.setTransactionType(TRANSACTION_TYPE_WITHDRAW);
+        transaction.setTransactionType(TransactionType.WITHDRAW);
 
         transactionRepository.save(transaction);
 
@@ -166,14 +170,24 @@ public class AccountServiceImpl implements AccountService {
         accountRepository.save(fromAccount);
         accountRepository.save(toAccount);
 
-        // 記錄交易（僅記錄來源帳戶的轉出交易，目標帳戶可另行記錄）
-        Transaction transaction = new Transaction();
+        // 記錄轉出方交易（TRANSFER_OUT）
+        Transaction fromTransaction = new Transaction();
 
-        transaction.setAccountId(transferFundDTO.fromAccountId());
-        transaction.setAmount(transferFundDTO.amount());
-        transaction.setTimestamp(LocalDateTime.now());
-        transaction.setTransactionType(TRANSACTION_TYPE_TRANSACTION);
-        transactionRepository.save(transaction);
+        fromTransaction.setAccountId(transferFundDTO.fromAccountId());
+        fromTransaction.setAmount(transferFundDTO.amount());
+        fromTransaction.setTimestamp(LocalDateTime.now());
+        fromTransaction.setTransactionType(TransactionType.TRANSFER_OUT);
+        transactionRepository.save(fromTransaction);
+
+        // 記錄轉入方交易（TRANSFER_IN）
+        Transaction toTransaction = new Transaction();
+
+        toTransaction.setAccountId(transferFundDTO.toAccountId());
+        toTransaction.setAmount(transferFundDTO.amount());
+        toTransaction.setTimestamp(LocalDateTime.now());
+        toTransaction.setTransactionType(TransactionType.TRANSFER_IN);
+        transactionRepository.save(toTransaction);
+
     }
 
 

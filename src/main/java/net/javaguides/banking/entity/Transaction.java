@@ -2,6 +2,7 @@ package net.javaguides.banking.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import net.javaguides.banking.enums.TransactionType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -17,10 +18,11 @@ public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Enumerated(EnumType.STRING)
     private Long id;
     private Long accountId;
     private BigDecimal amount;
-    private String transactionType;
+    private TransactionType transactionType;
     private LocalDateTime timestamp;
 
 
