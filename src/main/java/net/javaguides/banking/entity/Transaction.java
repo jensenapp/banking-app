@@ -18,10 +18,11 @@ public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Enumerated(EnumType.STRING)
+
     private Long id;
     private Long accountId;
     private BigDecimal amount;
+    @Enumerated(EnumType.STRING)
     private TransactionType transactionType;
     private LocalDateTime timestamp;
 

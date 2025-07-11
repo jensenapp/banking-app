@@ -7,6 +7,8 @@ import net.javaguides.banking.entity.Account;
 import net.javaguides.banking.entity.Transaction;
 import net.javaguides.banking.enums.TransactionType;
 import net.javaguides.banking.exception.AccountException;
+import net.javaguides.banking.exception.AccountNotFoundException;
+import net.javaguides.banking.exception.InsufficientAmountException;
 import net.javaguides.banking.mapper.AccountMapper;
 import net.javaguides.banking.repository.AccountRepository;
 import net.javaguides.banking.repository.TransactionRepository;
@@ -56,7 +58,7 @@ public class AccountServiceImpl implements AccountService {
     @Transactional(readOnly = true)
     @Override
     public AccountDto getAccountById(Long id) {
-        Account account = accountRepository.findById(id).orElseThrow(() -> new AccountException("Account does not exist"));
+        Account account = accountRepository.findById(id).orElseThrow(() -> new AccountNotFoundException("Account does not exist"));
         return AccountMapper.mapTOAccountDto(account);
     }
 
@@ -64,7 +66,7 @@ public class AccountServiceImpl implements AccountService {
     public AccountDto deposit(Long id, BigDecimal amount) {
 
         Account account = accountRepository.
-                findById(id).orElseThrow(() -> new AccountException("Account does not exist"));
+                findById(id).orElseThrow(() -> new AccountNotFoundException("Account does not exist"));
 
         account.setBalance(account.getBalance().add(amount));
 
@@ -86,10 +88,10 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AccountDto withdraw(Long id, BigDecimal amount) {
-        Account account = accountRepository.findById(id).orElseThrow(() -> new AccountException("Account does not exist"));
+        Account account = accountRepository.findById(id).orElseThrow(() -> new AccountNotFoundException("Account does not exist"));
 
         if (account.getBalance().compareTo(amount) < 0) {
-            throw new AccountException("Insufficient amount");
+            throw new InsufficientAmountException("Insufficient amount");
         }
 
 
@@ -122,7 +124,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public void deleteAccount(Long id) {
-        Account account = accountRepository.findById(id).orElseThrow(() -> new AccountException("Account does not exist"));
+        Account account = accountRepository.findById(id).orElseThrow(() -> new AccountNotFoundException("Account does not exist"));
         accountRepository.deleteById(id);
     }
 
@@ -140,11 +142,11 @@ public class AccountServiceImpl implements AccountService {
         Account account1, account2;
 
         if (fromAccountId < toAccountId) {
-            account1 = accountRepository.findByIdForUpdate(fromAccountId).orElseThrow(() -> new AccountException("Account does not exist"));
-            account2 = accountRepository.findByIdForUpdate(toAccountId).orElseThrow(() -> new AccountException("Account does not exist"));
+            account1 = accountRepository.findByIdForUpdate(fromAccountId).orElseThrow(() -> new AccountNotFoundException("Account does not exist"));
+            account2 = accountRepository.findByIdForUpdate(toAccountId).orElseThrow(() -> new AccountNotFoundException("Account does not exist"));
         } else {
-            account2 = accountRepository.findByIdForUpdate(toAccountId).orElseThrow(() -> new AccountException("Account does not exist"));
-            account1 = accountRepository.findByIdForUpdate(fromAccountId).orElseThrow(() -> new AccountException("Account does not exist"));
+            account2 = accountRepository.findByIdForUpdate(toAccountId).orElseThrow(() -> new AccountNotFoundException("Account does not exist"));
+            account1 = accountRepository.findByIdForUpdate(fromAccountId).orElseThrow(() -> new AccountNotFoundException("Account does not exist"));
         }
         // 找出哪個是轉出帳戶，哪個是轉入帳戶
 
@@ -159,7 +161,7 @@ public class AccountServiceImpl implements AccountService {
 
 
         if (fromAccount.getBalance().compareTo(transferFundDTO.amount()) < 0) {
-            throw new AccountException("Insufficient amount");
+            throw new InsufficientAmountException("Insufficient amount");
         }
 
         // 3. 從轉出帳戶扣款
