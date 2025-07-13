@@ -13,6 +13,8 @@ import net.javaguides.banking.mapper.AccountMapper;
 import net.javaguides.banking.repository.AccountRepository;
 import net.javaguides.banking.repository.TransactionRepository;
 import net.javaguides.banking.service.AccountService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -20,12 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
+
 
 @Transactional
 @Service
@@ -35,7 +32,7 @@ public class AccountServiceImpl implements AccountService {
 
     private TransactionRepository transactionRepository;
 
-
+    private static final Logger logger = LoggerFactory.getLogger(AccountServiceImpl.class);
 
 //    private static final String TRANSACTION_TYPE_DEPOSIT = "deposit";
 //    private static final String TRANSACTION_TYPE_WITHDRAW = "withdraw";
@@ -49,8 +46,10 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AccountDto createAccount(AccountDto accountDto) {
+        logger.info("嘗試為 {} 創進新帳戶", accountDto.accountHolderName());
         Account account = AccountMapper.mapTOAccount(accountDto);
         Account saveAccount = accountRepository.save(account);
+        logger.info("成功啟用新帳戶,id為{}", saveAccount.getId());
         AccountDto accountDto1 = AccountMapper.mapTOAccountDto(saveAccount);
         return accountDto1;
     }
@@ -58,19 +57,29 @@ public class AccountServiceImpl implements AccountService {
     @Transactional(readOnly = true)
     @Override
     public AccountDto getAccountById(Long id) {
-        Account account = accountRepository.findById(id).orElseThrow(() -> new AccountNotFoundException("Account does not exist"));
+        logger.info("使用ID：{}查詢帳戶", id);
+        Account account = accountRepository.findById(id).orElseThrow(() ->
+        {
+            logger.error("查無ID:{}", id);
+            return new AccountNotFoundException("Account does not exist");
+        });
+        logger.info("成功取得帳號:{}", id);
         return AccountMapper.mapTOAccountDto(account);
     }
 
     @Override
     public AccountDto deposit(Long id, BigDecimal amount) {
-
+        logger.info("嘗試儲蓄{}進入帳號:{}", amount, id);
         Account account = accountRepository.
-                findById(id).orElseThrow(() -> new AccountNotFoundException("Account does not exist"));
+                findById(id).orElseThrow(() -> {
+                    logger.error("儲蓄失敗,查無ID:{}", id);
+                    return new AccountNotFoundException("Account does not exist");
+                });
 
         account.setBalance(account.getBalance().add(amount));
 
         Account saveAccount = accountRepository.save(account);
+        logger.info("儲蓄成功,帳號:{},新餘額:{}", id, amount);
 
         AccountDto accountDto = AccountMapper.mapTOAccountDto(saveAccount);
 
@@ -88,15 +97,21 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AccountDto withdraw(Long id, BigDecimal amount) {
-        Account account = accountRepository.findById(id).orElseThrow(() -> new AccountNotFoundException("Account does not exist"));
+        logger.info("嘗試取款:{},扣款帳號:{}", id, amount);
+        Account account = accountRepository.findById(id).orElseThrow(() -> {
+            logger.error("取款失敗,查無帳號{}");
+            return new AccountNotFoundException("Account does not exist");
+        });
 
         if (account.getBalance().compareTo(amount) < 0) {
+            logger.error("帳號{}餘額不足,取款失敗,帳戶餘額:{},取款金額{}", id, account.getBalance(), account);
             throw new InsufficientAmountException("Insufficient amount");
         }
 
 
         account.setBalance(account.getBalance().subtract(amount));
         accountRepository.save(account);
+        logger.info("帳號{}取款成功，新餘額｛｝", account.getBalance());
         AccountDto accountDto = AccountMapper.mapTOAccountDto(account);
 
         // 記錄交易
@@ -124,18 +139,24 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public void deleteAccount(Long id) {
-        Account account = accountRepository.findById(id).orElseThrow(() -> new AccountNotFoundException("Account does not exist"));
+        logger.info("嘗試刪除帳戶,帳號:{}", id);
+        Account account = accountRepository.findById(id).orElseThrow(() -> {
+            logger.error("刪除失敗,查無帳號:{}", id);
+            return new AccountNotFoundException("Account does not exist");
+        });
         accountRepository.deleteById(id);
+        logger.info("刪除成功,帳號{}", id);
     }
 
     @Override
     public void transferFunds(TransferFundDTO transferFundDTO) {
-
+        logger.info("從帳號{}向帳號{},發起金額為{}的轉帳", transferFundDTO.fromAccountId(), transferFundDTO.toAccountId(), transferFundDTO.amount());
         Long fromAccountId = transferFundDTO.fromAccountId();
         Long toAccountId = transferFundDTO.toAccountId();
 
 
-        if (fromAccountId.equals(toAccountId)){
+        if (fromAccountId.equals(toAccountId)) {
+            logger.error("轉帳失敗,不能轉帳給相同的帳號{}",fromAccountId);
             throw new AccountException("不能轉帳到相同帳戶");
         }
 
@@ -161,6 +182,7 @@ public class AccountServiceImpl implements AccountService {
 
 
         if (fromAccount.getBalance().compareTo(transferFundDTO.amount()) < 0) {
+            logger.error("轉帳失敗,帳戶{}餘額{}小於欲轉金額{}",fromAccountId,fromAccount.getBalance(),transferFundDTO.amount());
             throw new InsufficientAmountException("Insufficient amount");
         }
 
@@ -189,6 +211,7 @@ public class AccountServiceImpl implements AccountService {
         toTransaction.setTimestamp(LocalDateTime.now());
         toTransaction.setTransactionType(TransactionType.TRANSFER_IN);
         transactionRepository.save(toTransaction);
+        logger.info("資金從帳戶 {} 轉至帳戶 {} 已成功完成", fromAccountId, toAccountId);
 
     }
 
