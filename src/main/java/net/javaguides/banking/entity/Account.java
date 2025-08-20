@@ -1,5 +1,6 @@
 package net.javaguides.banking.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -23,5 +24,10 @@ public class Account {
     @Column(name = "account_holder_name")
     private String accountHolderName;
     private BigDecimal balance;
-    
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id",nullable = false)
+    @JsonBackReference
+    private User user;
+
 }

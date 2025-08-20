@@ -5,6 +5,7 @@ import net.javaguides.banking.dto.TransactionDTO;
 import net.javaguides.banking.dto.TransferFundDTO;
 import net.javaguides.banking.entity.Account;
 import net.javaguides.banking.entity.Transaction;
+import net.javaguides.banking.entity.User;
 import net.javaguides.banking.enums.TransactionType;
 import net.javaguides.banking.exception.AccountException;
 import net.javaguides.banking.exception.AccountNotFoundException;
@@ -12,6 +13,7 @@ import net.javaguides.banking.exception.InsufficientAmountException;
 import net.javaguides.banking.mapper.AccountMapper;
 import net.javaguides.banking.repository.AccountRepository;
 import net.javaguides.banking.repository.TransactionRepository;
+import net.javaguides.banking.repository.UserRepository;
 import net.javaguides.banking.service.AccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,25 +34,39 @@ public class AccountServiceImpl implements AccountService {
 
     private TransactionRepository transactionRepository;
 
+    private UserRepository userRepository;
+
+    private AccountMapper accountMapper;
+
     private static final Logger logger = LoggerFactory.getLogger(AccountServiceImpl.class);
 
 //    private static final String TRANSACTION_TYPE_DEPOSIT = "deposit";
 //    private static final String TRANSACTION_TYPE_WITHDRAW = "withdraw";
 //    private static final String TRANSACTION_TYPE_TRANSACTION = "transaction";
 
-    public AccountServiceImpl(AccountRepository accountRepository, TransactionRepository transactionRepository) {
+
+    public AccountServiceImpl(AccountRepository accountRepository, TransactionRepository transactionRepository, UserRepository userRepository, AccountMapper accountMapper) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
+        this.userRepository = userRepository;
+        this.accountMapper = accountMapper;
     }
-
 
     @Override
     public AccountDto createAccount(AccountDto accountDto) {
+
         logger.info("嘗試為 {} 創進新帳戶", accountDto.accountHolderName());
-        Account account = AccountMapper.mapTOAccount(accountDto);
+
+        User user = userRepository.findByUserName(accountDto.accountHolderName()).orElseThrow(() -> new RuntimeException("username not found"));
+
+        Account account = accountMapper.mapTOAccount(accountDto);
+
+        account.setUser(user);
+
         Account saveAccount = accountRepository.save(account);
+
         logger.info("成功啟用新帳戶,id為{}", saveAccount.getId());
-        AccountDto accountDto1 = AccountMapper.mapTOAccountDto(saveAccount);
+        AccountDto accountDto1 = accountMapper.mapTOAccountDto(saveAccount);
         return accountDto1;
     }
 
@@ -64,7 +80,7 @@ public class AccountServiceImpl implements AccountService {
             return new AccountNotFoundException("Account does not exist");
         });
         logger.info("成功取得帳號:{}", id);
-        return AccountMapper.mapTOAccountDto(account);
+        return accountMapper.mapTOAccountDto(account);
     }
 
     @Override
@@ -81,7 +97,7 @@ public class AccountServiceImpl implements AccountService {
         Account saveAccount = accountRepository.save(account);
         logger.info("儲蓄成功,帳號:{},新餘額:{}", id, amount);
 
-        AccountDto accountDto = AccountMapper.mapTOAccountDto(saveAccount);
+        AccountDto accountDto = accountMapper.mapTOAccountDto(saveAccount);
 
         // 記錄交易
         Transaction transaction = new Transaction();
@@ -112,7 +128,7 @@ public class AccountServiceImpl implements AccountService {
         account.setBalance(account.getBalance().subtract(amount));
         accountRepository.save(account);
         logger.info("帳號{}取款成功，新餘額｛｝", account.getBalance());
-        AccountDto accountDto = AccountMapper.mapTOAccountDto(account);
+        AccountDto accountDto = accountMapper.mapTOAccountDto(account);
 
         // 記錄交易
         Transaction transaction = new Transaction();
@@ -132,7 +148,7 @@ public class AccountServiceImpl implements AccountService {
 
         Page<Account> accounts = accountRepository.findAll(pageable);
 
-        Page<AccountDto> accountDtoPage = accounts.map(account -> AccountMapper.mapTOAccountDto(account));
+        Page<AccountDto> accountDtoPage = accounts.map(account -> accountMapper.mapTOAccountDto(account));
 
         return accountDtoPage;
     }

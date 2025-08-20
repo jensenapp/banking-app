@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,17 +32,21 @@ public class AccountController {
 
     @PostMapping
     public ResponseEntity<AccountDto> addAccount(@Valid @RequestBody AccountDto accountDto) {
+
         AccountDto account = accountService.createAccount(accountDto);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(account);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @accountSecurityService.isOwner(authentication,#id)")
     public ResponseEntity<AccountDto> getAccountById(@PathVariable Long id) {
         AccountDto accountById = accountService.getAccountById(id);
         return ResponseEntity.status(HttpStatus.OK).body(accountById);
     }
 
     @PutMapping("/{id}/deposit")
+    @PreAuthorize("@accountSecurityService.isOwner(authentication,#id)")
     public ResponseEntity<AccountDto> deposit(@PathVariable Long id, @Valid @RequestBody AmountRequestDto amountRequestDto) {
 
         BigDecimal amount = amountRequestDto.amount();
@@ -52,6 +57,7 @@ public class AccountController {
     }
 
     @PutMapping("/{id}/withdraw")
+    @PreAuthorize("@accountSecurityService.isOwner(authentication,#id)")
     public ResponseEntity<AccountDto> withdraw(@PathVariable Long id, @Valid @RequestBody AmountRequestDto amountRequestDto) {
         BigDecimal amount = amountRequestDto.amount();
         AccountDto accountDto = accountService.withdraw(id, amount);
@@ -59,6 +65,7 @@ public class AccountController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PageResponseDTO<AccountDto>> getAllAccounts(@RequestParam(defaultValue = "0") @Min(0) int pageNo,
                                                                       @RequestParam(defaultValue = "3") @Min(1) @Max(100) int pageSize,
                                                                       @RequestParam(defaultValue = "id") String sortBy,
@@ -83,23 +90,26 @@ public class AccountController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> deleteById(@PathVariable Long id) {
         accountService.deleteAccount(id);
         return ResponseEntity.ok("Account deleted successfully");
     }
 
     @PostMapping("/transfer")
+    @PreAuthorize("@accountSecurityService.isOwner(authentication,#transferFundDTO.fromAccountId())")
     public ResponseEntity<String> transferFund(@Valid @RequestBody TransferFundDTO transferFundDTO) {
         accountService.transferFunds(transferFundDTO);
         return ResponseEntity.ok("transfer successful");
     }
 
-    @GetMapping("/{accountId}/transactions")
-    public ResponseEntity<PageResponseDTO<TransactionDTO>> fetchAccountTransactions(@PathVariable Long accountId, @RequestParam(defaultValue = "0") @Min(0) int pageNo, @RequestParam(defaultValue = "3") @Min(1) @Max(100) int pageSize) {
+    @GetMapping("/{id}/transactions")
+    @PreAuthorize("hasRole('ADMIN') or @accountSecurityService.isOwner(authentication,#id)")
+    public ResponseEntity<PageResponseDTO<TransactionDTO>> fetchAccountTransactions(@PathVariable Long id, @RequestParam(defaultValue = "0") @Min(0) int pageNo, @RequestParam(defaultValue = "3") @Min(1) @Max(100) int pageSize) {
 
         Pageable pageable = PageRequest.of(pageNo, pageSize);
 
-        Page<TransactionDTO> page = accountService.getAccountTransactions(accountId, pageable);
+        Page<TransactionDTO> page = accountService.getAccountTransactions(id, pageable);
 
         PageResponseDTO<TransactionDTO> transactionDTOPageResponseDTO =
                 new PageResponseDTO<TransactionDTO>(
