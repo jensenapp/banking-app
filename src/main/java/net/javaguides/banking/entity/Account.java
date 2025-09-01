@@ -23,6 +23,7 @@ public class Account {
 
     @Column(name = "account_holder_name")
     private String accountHolderName;
+    
     private BigDecimal balance;
 
     @ManyToOne(fetch = FetchType.LAZY)

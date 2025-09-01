@@ -27,10 +27,16 @@ public class AccountSecurityService {
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-        if (account.getUser() == null || account == null) {
+        if (account.getUser() == null) {
             return false;
         }
 
         return userDetails.getId().equals(account.getUser().getUserId());
     }
+
+    public boolean canCreateAccountFor(Authentication authentication, String username) {
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        return userDetails.getUsername().equals(username);
+    }
+
 }
