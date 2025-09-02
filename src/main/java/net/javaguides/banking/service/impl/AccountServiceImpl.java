@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -85,61 +86,91 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AccountDto deposit(Long id, BigDecimal amount) {
-        logger.info("嘗試儲蓄{}進入帳號:{}", amount, id);
-        Account account = accountRepository.
-                findById(id).orElseThrow(() -> {
-                    logger.error("儲蓄失敗,查無ID:{}", id);
-                    return new AccountNotFoundException("Account does not exist");
-                });
 
-        account.setBalance(account.getBalance().add(amount));
+        final int MAX_ATTEMPS = 3;
 
-        Account saveAccount = accountRepository.save(account);
-        logger.info("儲蓄成功,帳號:{},新餘額:{}", id, amount);
+        for (int attemp = 0; attemp < MAX_ATTEMPS; attemp++) {
 
-        AccountDto accountDto = accountMapper.mapTOAccountDto(saveAccount);
+            try {
+                logger.info("嘗試儲蓄{}進入帳號:{}", amount, id);
+                Account account = accountRepository.
+                        findById(id).orElseThrow(() -> {
+                            logger.error("儲蓄失敗,查無ID:{}", id);
+                            return new AccountNotFoundException("Account does not exist");
+                        });
 
-        // 記錄交易
-        Transaction transaction = new Transaction();
-        transaction.setAccountId(id);
-        transaction.setAmount(amount);
-        transaction.setTimestamp(LocalDateTime.now());
-        transaction.setTransactionType(TransactionType.DEPOSIT);
-        transactionRepository.save(transaction);
+                account.setBalance(account.getBalance().add(amount));
+
+                Account saveAccount = accountRepository.save(account);
+                logger.info("儲蓄成功,帳號:{},新餘額:{}", id, amount);
 
 
-        return accountDto;
+                // 記錄交易
+                Transaction transaction = new Transaction();
+                transaction.setAccountId(id);
+                transaction.setAmount(amount);
+                transaction.setTimestamp(LocalDateTime.now());
+                transaction.setTransactionType(TransactionType.DEPOSIT);
+                transactionRepository.save(transaction);
+
+                AccountDto accountDto = accountMapper.mapTOAccountDto(saveAccount);
+
+                return accountDto;
+
+            } catch (ObjectOptimisticLockingFailureException e) {
+                // 發生衝突，記錄日誌後，迴圈將自動重試
+                logger.warn("帳戶 {} 存款發生併發衝突，準備重試...", id);
+            }
+        }
+        // 如果重試全部失敗，則拋出例外
+        throw new AccountException("存款操作因高併發衝突而失敗，請稍後再試。");
     }
+
 
     @Override
     public AccountDto withdraw(Long id, BigDecimal amount) {
-        logger.info("嘗試取款:{},扣款帳號:{}", id, amount);
-        Account account = accountRepository.findById(id).orElseThrow(() -> {
-            logger.error("取款失敗,查無帳號{}");
-            return new AccountNotFoundException("Account does not exist");
-        });
 
-        if (account.getBalance().compareTo(amount) < 0) {
-            logger.error("帳號{}餘額不足,取款失敗,帳戶餘額:{},取款金額{}", id, account.getBalance(), account);
-            throw new InsufficientAmountException("Insufficient amount");
+        final int MAX_ATTEMP=3;
+
+        for (int attemp = 0; attemp < MAX_ATTEMP; attemp++) {
+
+
+            try {
+                logger.info("嘗試取款:{},扣款帳號:{}", id, amount);
+                Account account = accountRepository.findById(id).orElseThrow(() -> {
+                    logger.error("取款失敗,查無帳號{}");
+                    return new AccountNotFoundException("Account does not exist");
+                });
+
+                if (account.getBalance().compareTo(amount) < 0) {
+                    logger.error("帳號{}餘額不足,取款失敗,帳戶餘額:{},取款金額{}", id, account.getBalance(), account);
+                    throw new InsufficientAmountException("Insufficient amount");
+                }
+
+
+                account.setBalance(account.getBalance().subtract(amount));
+                accountRepository.save(account);
+                logger.info("帳號{}取款成功，新餘額｛｝", account.getBalance());
+
+
+                // 記錄交易
+                Transaction transaction = new Transaction();
+                transaction.setAccountId(id);
+                transaction.setAmount(amount);
+                transaction.setTimestamp(LocalDateTime.now());
+                transaction.setTransactionType(TransactionType.WITHDRAW);
+
+                transactionRepository.save(transaction);
+
+
+                AccountDto accountDto = accountMapper.mapTOAccountDto(account);
+
+                return accountDto;
+            } catch (ObjectOptimisticLockingFailureException e) {
+                logger.warn("帳戶{} 存款發生併發衝突，準備重試...", id);
+            }
         }
-
-
-        account.setBalance(account.getBalance().subtract(amount));
-        accountRepository.save(account);
-        logger.info("帳號{}取款成功，新餘額｛｝", account.getBalance());
-        AccountDto accountDto = accountMapper.mapTOAccountDto(account);
-
-        // 記錄交易
-        Transaction transaction = new Transaction();
-        transaction.setAccountId(id);
-        transaction.setAmount(amount);
-        transaction.setTimestamp(LocalDateTime.now());
-        transaction.setTransactionType(TransactionType.WITHDRAW);
-
-        transactionRepository.save(transaction);
-
-        return accountDto;
+        throw new AccountException("存款操作因高併發衝突而失敗，請稍後再試。");
     }
 
     @Transactional(readOnly = true)
@@ -172,7 +203,7 @@ public class AccountServiceImpl implements AccountService {
 
 
         if (fromAccountId.equals(toAccountId)) {
-            logger.error("轉帳失敗,不能轉帳給相同的帳號{}",fromAccountId);
+            logger.error("轉帳失敗,不能轉帳給相同的帳號{}", fromAccountId);
             throw new AccountException("不能轉帳到相同帳戶");
         }
 
@@ -198,7 +229,7 @@ public class AccountServiceImpl implements AccountService {
 
 
         if (fromAccount.getBalance().compareTo(transferFundDTO.amount()) < 0) {
-            logger.error("轉帳失敗,帳戶{}餘額{}小於欲轉金額{}",fromAccountId,fromAccount.getBalance(),transferFundDTO.amount());
+            logger.error("轉帳失敗,帳戶{}餘額{}小於欲轉金額{}", fromAccountId, fromAccount.getBalance(), transferFundDTO.amount());
             throw new InsufficientAmountException("Insufficient amount");
         }
 
