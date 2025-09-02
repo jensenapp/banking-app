@@ -31,4 +31,7 @@ public class Account {
     @JsonBackReference
     private User user;
 
+    @Version
+    private Long version;
+
 }
