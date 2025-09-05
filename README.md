@@ -199,17 +199,8 @@
 
 本專案包含使用者、角色、帳戶和交易四個核心實體，其關係如下：
 
-```
-+---------------+      +-------------+      +----------------+      +--------------------+
-|     roles     |      |    users    |      |    accounts    |      |    transactions    |
-+---------------+      +-------------+      +----------------+      +--------------------+
-|PK role_id     |<--(1..1)---(n..1)--|FK role_id  |      |PK id           |<--(1..1)---(n..1)--|FK account_id     |
-|   role_name   |      |PK user_id   |--(1..n)--->|FK user_id    |      |   id               |
-+---------------+      |   username  |      |   holder_name  |      |   amount           |
-                       |   email     |      |   balance      |      |   transaction_type |
-                       |   password  |      |   version      |      |   timestamp        |
-                       +-------------+      +----------------+      +--------------------+
-```
+<img width="1507" height="635" alt="image" src="https://github.com/user-attachments/assets/0cf170bb-21be-44a4-a9c5-59a9574612bc" />
+
 
   * **關聯**:
       * 一個 `User` 擁有一個 `Role` (多對一)。
