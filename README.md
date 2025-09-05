@@ -199,7 +199,8 @@
 
 本專案包含使用者、角色、帳戶和交易四個核心實體，其關係如下：
 
-<img width="1507" height="635" alt="image" src="https://github.com/user-attachments/assets/0cf170bb-21be-44a4-a9c5-59a9574612bc" />
+<img width="1496" height="639" alt="image" src="https://github.com/user-attachments/assets/bf95caf7-18c5-42ae-b660-9b1468329745" />
+
 
 
   * **關聯**:
