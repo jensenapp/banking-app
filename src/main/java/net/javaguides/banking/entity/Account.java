@@ -34,4 +34,6 @@ public class Account {
     @Version
     private Long version;
 
+    public Account(Long id, String s, BigDecimal balance, Object o) {
+    }
 }
