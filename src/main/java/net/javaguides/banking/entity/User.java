@@ -51,7 +51,7 @@ public class User{
     private String password;
 
 
-    @OneToMany(mappedBy = "user",cascade = CascadeType.ALL,fetch = FetchType.LAZY,orphanRemoval = true)
+    @OneToMany(mappedBy = "user",cascade = CascadeType.PERSIST,fetch = FetchType.LAZY,orphanRemoval = true)
     @JsonManagedReference
     private List<Account> accounts=new ArrayList<>();
 

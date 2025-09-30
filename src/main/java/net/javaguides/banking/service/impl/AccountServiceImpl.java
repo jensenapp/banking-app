@@ -102,7 +102,7 @@ public class AccountServiceImpl implements AccountService {
                 account.setBalance(account.getBalance().add(amount));
 
                 Account saveAccount = accountRepository.save(account);
-                logger.info("儲蓄成功,帳號:{},新餘額:{}", id, amount);
+                logger.info("儲蓄成功,帳號:{},新餘額:{}", id, saveAccount.getBalance());
 
 
                 // 記錄交易
