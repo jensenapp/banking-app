@@ -31,7 +31,7 @@ public class AccountController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('admin') or @accountSecurityService.canCreateAccountFor(authentication,#accountDto.accountHolderName())")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AccountDto> addAccount(@Valid @RequestBody AccountDto accountDto) {
 
         AccountDto account = accountService.createAccount(accountDto);
