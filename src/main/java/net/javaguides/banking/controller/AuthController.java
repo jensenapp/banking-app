@@ -93,7 +93,7 @@ public class AuthController {
         // 宣告認證結果變數，稍後存儲認證成功的 Authentication 物件
         Authentication authentication;
 
-        try {
+
             /**
              * 關鍵認證步驟：執行用戶身份驗證
              *
@@ -123,27 +123,7 @@ public class AuthController {
                             loginRequest.getPassword()   // 用戶輸入的明文密碼
                     ));
 
-        } catch (AuthenticationException exception) {
-            /**
-             * 認證失敗處理
-             *
-             * AuthenticationException 的可能子類型：
-             * - BadCredentialsException: 用戶名或密碼錯誤
-             * - UsernameNotFoundException: 用戶不存在
-             * - AccountExpiredException: 帳戶已過期
-             * - DisabledException: 帳戶已停用
-             * - LockedException: 帳戶已鎖定
-             */
 
-            // 構建錯誤回應的資料結構
-            Map<String, Object> map = new HashMap<>();
-            map.put("message", "Bad credentials");  // 錯誤訊息（出於安全考量，不透露具體失敗原因）
-            map.put("status", false);               // 認證狀態：失敗
-
-            // 回傳 HTTP 404 Not Found 和錯誤資訊
-            // 注意：使用 404 而非 401 可能是為了隱藏 API 端點的存在
-            return new ResponseEntity<Object>(map, HttpStatus.NOT_FOUND);
-        }
 
         /**
          * 認證成功後的處理流程
