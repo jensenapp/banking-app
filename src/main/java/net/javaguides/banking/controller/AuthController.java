@@ -210,7 +210,7 @@ public class AuthController {
     @PostMapping("/public/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
         // 檢查1：使用者名稱是否已存在
-        if (userRepository.existsByUserName(signUpRequest.getUsername())) {
+        if (userRepository.existsByUsername(signUpRequest.getUsername())) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: Username is already taken!"));
         }
 
@@ -222,7 +222,9 @@ public class AuthController {
         // 步驟1：建立新使用者帳號，並加密密碼
         User user = new User(signUpRequest.getUsername(),
                 signUpRequest.getEmail(),
-                encoder.encode(signUpRequest.getPassword()));
+                encoder.encode(signUpRequest.getPassword()),
+                signUpRequest.getRealName()
+                );
 
         // 步驟2：處理與指派角色
         Set<String> strRoles = signUpRequest.getRole();
@@ -275,7 +277,7 @@ public class AuthController {
         // 步驟 3: 準備回傳給前端的 DTO 物件
         UserInfoResponse response = new UserInfoResponse(
                 user.getUserId(),
-                user.getUserName(),
+                user.getUsername(),
                 user.getEmail(),
                 user.isAccountNonLocked(),
                 user.isAccountNonExpired(),

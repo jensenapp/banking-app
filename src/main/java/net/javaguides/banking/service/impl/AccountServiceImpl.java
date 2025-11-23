@@ -66,12 +66,15 @@ public class AccountServiceImpl implements AccountService {
 
         Long currentUserId = userDetails.getId();
 
-        logger.info("已登入使用者ID:{},嘗試為 {} 創進新帳戶", currentUserId,accountDto.accountHolderName());
+        logger.info("已登入使用者ID:{} 嘗試創進新帳戶", currentUserId);
 
 
         User user = userRepository.findById(currentUserId).orElseThrow(() -> new RuntimeException("Logged-in user not found in database with id: " + currentUserId));
 
+
         Account account = accountMapper.mapTOAccount(accountDto);
+
+        account.setAccountHolderName(user.getRealName());
 
         account.setUser(user);
 

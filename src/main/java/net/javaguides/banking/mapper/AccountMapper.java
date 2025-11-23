@@ -14,7 +14,12 @@ public class AccountMapper {
 
     public  Account mapTOAccount(AccountDto accountDto){
 
-     return new Account(accountDto.id(),accountDto.accountHolderName(),accountDto.balance(),null);
+        // 修改為使用無參數建構子 + Setter，確保資料正確寫入
+        Account account = new Account();
+        account.setId(accountDto.id());
+        account.setBalance(accountDto.balance());
+        // accountHolderName 和 user 會在 Service 層中設定，這裡先忽略
+        return account;
     }
 
     public  AccountDto mapTOAccountDto(Account account){

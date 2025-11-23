@@ -69,16 +69,8 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         // --- 1. 設定 CSRF (跨站請求偽造) 保護 ---
-        http.csrf(csrf ->
-                csrf
-                        // 規則 1.1: 忽略特定路徑的 CSRF 保護。
-                        // 所有符合 "/api/auth/public/**" 模式的請求將不會進行 CSRF Token 驗證。
-                        // 這適用於不需要保護的公開 API。
-                        .ignoringRequestMatchers("/api/auth/public/**")
-                        // 規則 1.2: 設定 CSRF Token 的儲存庫。
-                        // CookieCsrfTokenRepository 會將 Token 存放在 Cookie 中。
-                        // withHttpOnlyFalse() 允許客戶端的 JavaScript 讀取這個 Cookie，這對於 SPA (單頁應用) 前端至關重要。
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()));
+       http.csrf(httpSecurityCsrfConfigurer -> httpSecurityCsrfConfigurer.disable());
+
 
         // --- 2. 設定 HTTP 請求的授權規則 ---
         http.authorizeHttpRequests((requests) -> requests
@@ -139,52 +131,52 @@ public class SecurityConfig {
      * @param passwordEncoder 密碼編碼器，用於加密預設密碼。
      * @return 一個 CommandLineRunner 實例。
      */
-    @Bean
-    public CommandLineRunner initData(RoleRepository roleRepository,
-                                      UserRepository userRepository,
-                                      PasswordEncoder passwordEncoder) {
-        return args -> {
-            // --- 初始化角色 ---
-            // 初始化 "USER" 角色：先嘗試尋找，如果不存在，則建立並儲存一個新的。
-            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
-                    .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_USER)));
-
-            // 初始化 "ADMIN" 角色：同樣地，先尋找，若無則建立。
-            Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
-                    .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_ADMIN)));
-
-            // --- 初始化使用者 ---
-            // 檢查名為 "user1" 的使用者是否存在，如果不存在，則建立一個普通使用者。
-            if (!userRepository.existsByUserName("user1")) {
-                User user1 = new User("user1", "user1@example.com",
-                        passwordEncoder.encode("password1")); // 使用 passwordEncoder 加密密碼
-                user1.setAccountNonLocked(true); // 帳號未鎖定
-                user1.setAccountNonExpired(true); // 帳號未過期
-                user1.setCredentialsNonExpired(true); // 憑證未過期
-                user1.setEnabled(true); // 帳號已啟用
-                user1.setCredentialsExpiryDate(LocalDate.now().plusYears(1)); // 憑證一年後過期
-                user1.setAccountExpiryDate(LocalDate.now().plusYears(1)); // 帳號一年後過期
-                user1.setTwoFactorEnabled(false); // 禁用兩步驟驗證
-                user1.setSignUpMethod("email"); // 註冊方式
-                user1.setRole(userRole); // 設定角色為 "USER"
-                userRepository.save(user1); // 儲存到資料庫
-            }
-
-            // 檢查名為 "admin" 的使用者是否存在，如果不存在，則建立一個管理員。
-            if (!userRepository.existsByUserName("admin")) {
-                User admin = new User("admin", "admin@example.com",
-                        passwordEncoder.encode("adminPass")); // 使用 passwordEncoder 加密密碼
-                admin.setAccountNonLocked(true);
-                admin.setAccountNonExpired(true);
-                admin.setCredentialsNonExpired(true);
-                admin.setEnabled(true);
-                admin.setCredentialsExpiryDate(LocalDate.now().plusYears(1));
-                admin.setAccountExpiryDate(LocalDate.now().plusYears(1));
-                admin.setTwoFactorEnabled(false);
-                admin.setSignUpMethod("email");
-                admin.setRole(adminRole); // 設定角色為 "ADMIN"
-                userRepository.save(admin); // 儲存到資料庫
-            }
-        };
-    }
+//    @Bean
+//    public CommandLineRunner initData(RoleRepository roleRepository,
+//                                      UserRepository userRepository,
+//                                      PasswordEncoder passwordEncoder) {
+//        return args -> {
+//            // --- 初始化角色 ---
+//            // 初始化 "USER" 角色：先嘗試尋找，如果不存在，則建立並儲存一個新的。
+//            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
+//                    .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_USER)));
+//
+//            // 初始化 "ADMIN" 角色：同樣地，先尋找，若無則建立。
+//            Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
+//                    .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_ADMIN)));
+//
+//            // --- 初始化使用者 ---
+//            // 檢查名為 "user1" 的使用者是否存在，如果不存在，則建立一個普通使用者。
+//            if (!userRepository.existsByUserName("user1")) {
+//                User user1 = new User("user1", "user1@example.com",
+//                        passwordEncoder.encode("password1"),"tommy"); // 使用 passwordEncoder 加密密碼
+//                user1.setAccountNonLocked(true); // 帳號未鎖定
+//                user1.setAccountNonExpired(true); // 帳號未過期
+//                user1.setCredentialsNonExpired(true); // 憑證未過期
+//                user1.setEnabled(true); // 帳號已啟用
+//                user1.setCredentialsExpiryDate(LocalDate.now().plusYears(1)); // 憑證一年後過期
+//                user1.setAccountExpiryDate(LocalDate.now().plusYears(1)); // 帳號一年後過期
+//                user1.setTwoFactorEnabled(false); // 禁用兩步驟驗證
+//                user1.setSignUpMethod("email"); // 註冊方式
+//                user1.setRole(userRole); // 設定角色為 "USER"
+//                userRepository.save(user1); // 儲存到資料庫
+//            }
+//
+//            // 檢查名為 "admin" 的使用者是否存在，如果不存在，則建立一個管理員。
+//            if (!userRepository.existsByUserName("admin")) {
+//                User admin = new User("admin", "admin@example.com",
+//                        passwordEncoder.encode("adminPass"),"momo"); // 使用 passwordEncoder 加密密碼
+//                admin.setAccountNonLocked(true);
+//                admin.setAccountNonExpired(true);
+//                admin.setCredentialsNonExpired(true);
+//                admin.setEnabled(true);
+//                admin.setCredentialsExpiryDate(LocalDate.now().plusYears(1));
+//                admin.setAccountExpiryDate(LocalDate.now().plusYears(1));
+//                admin.setTwoFactorEnabled(false);
+//                admin.setSignUpMethod("email");
+//                admin.setRole(adminRole); // 設定角色為 "ADMIN"
+//                userRepository.save(admin); // 儲存到資料庫
+//            }
+//        };
+//    }
 }

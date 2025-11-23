@@ -50,7 +50,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User findByUsername(String username) {
-        User user= userRepository.findByUserName(username).orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+        User user= userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found with username: " + username));
         return user;
     }
 
@@ -59,7 +59,7 @@ public class UserServiceImpl implements UserService {
     private UserDTO convertToDto(User user) {
         return new UserDTO(
                 user.getUserId(),
-                user.getUserName(),
+                user.getUsername(),
                 user.getEmail(),
                 user.isAccountNonLocked(),
                 user.isAccountNonExpired(),

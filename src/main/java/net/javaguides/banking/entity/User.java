@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -37,7 +38,7 @@ public class User{
     @NotBlank
     @Size(max = 20)
     @Column(name = "username")
-    private String userName;
+    private String username;
 
     @NotBlank
     @Size(max = 50)
@@ -50,6 +51,10 @@ public class User{
     @JsonIgnore
     private String password;
 
+    @NotNull
+    @Size(min = 3,max = 100)
+    @Column(name = "real_name")
+    private String realName;
 
     @OneToMany(mappedBy = "user",cascade = CascadeType.PERSIST,fetch = FetchType.LAZY,orphanRemoval = true)
     @JsonManagedReference
@@ -81,14 +86,15 @@ public class User{
     @UpdateTimestamp
     private LocalDateTime updatedDate;
 
-    public User(String userName, String email, String password) {
-        this.userName = userName;
+    public User(String userName, String email, String password, String realName) {
+        this.username = userName;
         this.email = email;
         this.password = password;
+        this.realName = realName;
     }
 
     public User(String userName, String email) {
-        this.userName = userName;
+        this.username = userName;
         this.email = email;
     }
 

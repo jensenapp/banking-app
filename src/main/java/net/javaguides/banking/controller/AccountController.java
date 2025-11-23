@@ -31,7 +31,7 @@ public class AccountController {
     }
 
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<AccountDto> addAccount(@Valid @RequestBody AccountDto accountDto) {
 
         AccountDto account = accountService.createAccount(accountDto);
