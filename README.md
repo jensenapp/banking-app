@@ -8,7 +8,7 @@
 
 -----
 
-## 🚀 核心功能 (Core Features)
+##  核心功能 (Core Features)
 
   * **使用者認證與授權 (User Authentication & Authorization)**
 
@@ -39,7 +39,7 @@
 
 -----
 
-## ✨ 技術亮點 (Technical Highlights)
+##  技術亮點 (Technical Highlights)
 
   * **完整的安全框架 (Comprehensive Security Framework)**：
 
@@ -70,7 +70,7 @@
 
 -----
 
-## 🛠️ 技術棧 (Technology Stack)
+## 技術棧 (Technology Stack)
 
 | 類別 | 技術 |
 | :--- | :--- |
@@ -84,7 +84,7 @@
 
 -----
 
-## ⚙️ 安裝與執行 (Installation & Setup)
+## 安裝與執行 (Installation & Setup)
 
 ### 環境需求
 
@@ -92,31 +92,55 @@
   * Maven 3.8 或更高版本
 
 ### 執行步驟
+-----
 
-1.  **複製專案**
+### 1\. 複製專案
 
-    ```bash
-    git clone <your-repository-url>
-    cd <project-directory>
-    ```
+請使用以下命令複製專案：
 
-2.  **執行應用程式**
-    專案預設使用 H2 內嵌式資料庫，無需額外配置。啟動時會自動建立兩個測試帳號：
+```bash
+git clone <your-repository-url>
+cd <project-directory>
+```
 
-      * **管理員**: username=`admin`, password=`adminPass`
-      * **一般使用者**: username=`user1`, password=`password1`
+### 2\. 執行應用程式
 
-    <!-- end list -->
+專案預設使用 **H2 內嵌式資料庫**，因此無需額外配置。
 
-    ```bash
-    mvn spring-boot:run
-    ```
+啟動時會**自動建立**兩個測試帳號：
 
-    應用程式啟動後，API 服務將運行於 `http://localhost:8080`。
+* **管理員:** `username=admin`, `password=adminPass`
+* **一般使用者:** `username=user1`, `password=password1`
+
+執行以下 Maven 命令啟動應用程式：
+
+```bash
+mvn spring-boot:run
+```
+
+>  應用程式啟動後，API 服務將運行於 **http://localhost:8080**。
+
+### 3\. 存取 H2 資料庫 (H2 Console)
+
+應用程式啟動後，您可以進入 H2 Console 查看或驗證資料庫內容：
+
+1.  開啟瀏覽器，訪問網址：**http://localhost:8080/h2-console**
+2.  出現登入畫面後，請確認欄位填寫如下（這些值對應於 `application.properties` 中的設定）：
+
+| 欄位 | 數值 | 備註 |
+| :--- | :--- | :--- |
+| **Driver Class** | `org.h2.Driver` | |
+| **JDBC URL** | `jdbc:h2:mem:banking_db` | **🚨 注意：此欄位最重要，必須與設定檔完全一致才能連線到正確的記憶體資料庫。** |
+| **User Name** | `sa` | |
+| **Password** | `password` | |
+
+3.  點擊 **Connect**。
+4.  登入成功後，若在左側看到 `USERS`, `ACCOUNTS` 等資料表，即代表設定成功。
 
 -----
 
-## 📝 API 文件與範例 (API Docs & Examples)
+
+##  API 文件與範例 (API Docs & Examples)
 
 **注意**: 訪問受保護的端點時，需在 HTTP 請求的標頭中加入 `Authorization: Bearer <Your-JWT-Token>`。
 
@@ -195,7 +219,7 @@
 
 -----
 
-## 🗃️ 資料庫結構 (Database Schema)
+##  資料庫結構 (Database Schema)
 
 本專案包含使用者、角色、帳戶和交易四個核心實體，其關係如下：
 
@@ -210,9 +234,8 @@
 
 -----
 
-## 🔮 未來展望 (Future Work)
+## 未來展望 (Future Work)
 
-  * **強化測試覆蓋**：使用 JUnit 5 與 Mockito 編寫更完整的單元測試與整合測試。
   * **API 文件自動化**：整合 `springdoc-openapi` (Swagger) 自動生成互動式 API 文件。
   * **容器化部署**：提供 `Dockerfile` 與 `docker-compose.yml`，以利於使用 Docker 進行快速部署。
   * **非同步處理**：對於交易紀錄等非核心路徑操作，可引入訊息佇列 (如 RabbitMQ) 進行非同步處理，提升主流程效能。

@@ -77,6 +77,7 @@ public class SecurityConfig {
                 // 規則 2.1: 任何對 "/api/csrf-token" 路徑的請求，都允許存取 (permitAll)。
                 // 這讓未登入的使用者也能獲取 CSRF Token。
                 .requestMatchers("/api/csrf-token").permitAll()
+                .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/api/auth/public/**").permitAll()
 
                 // 規則 2.2 (兜底規則): 除了上述規則之外的任何其他請求 (anyRequest)，都必須經過身份驗證 (authenticated)。
@@ -90,6 +91,13 @@ public class SecurityConfig {
         // 啟用表單登入 (Form Login)。
         // 這會提供一個預設的登入頁面。
 //        http.formLogin(withDefaults());
+
+        // --- [修正] H2 Console 顯示修正 ---
+        // H2 Console 使用 HTML Frames，Spring Security 預設會阻擋
+        // 必須設定 headers 允許 Same Origin 的 Frame
+        http.headers(headers -> headers
+                .frameOptions(frameOptions -> frameOptions.sameOrigin())
+        );
 
 // 將 Session 管理設為無狀態
         http.sessionManagement(session ->
