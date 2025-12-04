@@ -131,52 +131,52 @@ public class SecurityConfig {
      * @param passwordEncoder 密碼編碼器，用於加密預設密碼。
      * @return 一個 CommandLineRunner 實例。
      */
-//    @Bean
-//    public CommandLineRunner initData(RoleRepository roleRepository,
-//                                      UserRepository userRepository,
-//                                      PasswordEncoder passwordEncoder) {
-//        return args -> {
-//            // --- 初始化角色 ---
-//            // 初始化 "USER" 角色：先嘗試尋找，如果不存在，則建立並儲存一個新的。
-//            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
-//                    .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_USER)));
-//
-//            // 初始化 "ADMIN" 角色：同樣地，先尋找，若無則建立。
-//            Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
-//                    .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_ADMIN)));
-//
-//            // --- 初始化使用者 ---
-//            // 檢查名為 "user1" 的使用者是否存在，如果不存在，則建立一個普通使用者。
-//            if (!userRepository.existsByUserName("user1")) {
-//                User user1 = new User("user1", "user1@example.com",
-//                        passwordEncoder.encode("password1"),"tommy"); // 使用 passwordEncoder 加密密碼
-//                user1.setAccountNonLocked(true); // 帳號未鎖定
-//                user1.setAccountNonExpired(true); // 帳號未過期
-//                user1.setCredentialsNonExpired(true); // 憑證未過期
-//                user1.setEnabled(true); // 帳號已啟用
-//                user1.setCredentialsExpiryDate(LocalDate.now().plusYears(1)); // 憑證一年後過期
-//                user1.setAccountExpiryDate(LocalDate.now().plusYears(1)); // 帳號一年後過期
-//                user1.setTwoFactorEnabled(false); // 禁用兩步驟驗證
-//                user1.setSignUpMethod("email"); // 註冊方式
-//                user1.setRole(userRole); // 設定角色為 "USER"
-//                userRepository.save(user1); // 儲存到資料庫
-//            }
-//
-//            // 檢查名為 "admin" 的使用者是否存在，如果不存在，則建立一個管理員。
-//            if (!userRepository.existsByUserName("admin")) {
-//                User admin = new User("admin", "admin@example.com",
-//                        passwordEncoder.encode("adminPass"),"momo"); // 使用 passwordEncoder 加密密碼
-//                admin.setAccountNonLocked(true);
-//                admin.setAccountNonExpired(true);
-//                admin.setCredentialsNonExpired(true);
-//                admin.setEnabled(true);
-//                admin.setCredentialsExpiryDate(LocalDate.now().plusYears(1));
-//                admin.setAccountExpiryDate(LocalDate.now().plusYears(1));
-//                admin.setTwoFactorEnabled(false);
-//                admin.setSignUpMethod("email");
-//                admin.setRole(adminRole); // 設定角色為 "ADMIN"
-//                userRepository.save(admin); // 儲存到資料庫
-//            }
-//        };
-//    }
+    @Bean
+    public CommandLineRunner initData(RoleRepository roleRepository,
+                                      UserRepository userRepository,
+                                      PasswordEncoder passwordEncoder) {
+        return args -> {
+            // --- 初始化角色 ---
+            // 初始化 "USER" 角色：先嘗試尋找，如果不存在，則建立並儲存一個新的。
+            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
+                    .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_USER)));
+
+            // 初始化 "ADMIN" 角色：同樣地，先尋找，若無則建立。
+            Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
+                    .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_ADMIN)));
+
+            // --- 初始化使用者 ---
+            // 檢查名為 "user1" 的使用者是否存在，如果不存在，則建立一個普通使用者。
+            if (!userRepository.existsByUsername("user1")) {
+                User user1 = new User("user1", "user1@example.com",
+                        passwordEncoder.encode("password1"),"tommy"); // 使用 passwordEncoder 加密密碼
+                user1.setAccountNonLocked(true); // 帳號未鎖定
+                user1.setAccountNonExpired(true); // 帳號未過期
+                user1.setCredentialsNonExpired(true); // 憑證未過期
+                user1.setEnabled(true); // 帳號已啟用
+                user1.setCredentialsExpiryDate(LocalDate.now().plusYears(1)); // 憑證一年後過期
+                user1.setAccountExpiryDate(LocalDate.now().plusYears(1)); // 帳號一年後過期
+                user1.setTwoFactorEnabled(false); // 禁用兩步驟驗證
+                user1.setSignUpMethod("email"); // 註冊方式
+                user1.setRole(userRole); // 設定角色為 "USER"
+                userRepository.save(user1); // 儲存到資料庫
+            }
+
+            // 檢查名為 "admin" 的使用者是否存在，如果不存在，則建立一個管理員。
+            if (!userRepository.existsByUsername("admin")) {
+                User admin = new User("admin", "admin@example.com",
+                        passwordEncoder.encode("adminPass"),"momo"); // 使用 passwordEncoder 加密密碼
+                admin.setAccountNonLocked(true);
+                admin.setAccountNonExpired(true);
+                admin.setCredentialsNonExpired(true);
+                admin.setEnabled(true);
+                admin.setCredentialsExpiryDate(LocalDate.now().plusYears(1));
+                admin.setAccountExpiryDate(LocalDate.now().plusYears(1));
+                admin.setTwoFactorEnabled(false);
+                admin.setSignUpMethod("email");
+                admin.setRole(adminRole); // 設定角色為 "ADMIN"
+                userRepository.save(admin); // 儲存到資料庫
+            }
+        };
+    }
 }
