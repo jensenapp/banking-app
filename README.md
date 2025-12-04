@@ -130,7 +130,7 @@ mvn spring-boot:run
 | 欄位 | 數值 | 備註 |
 | :--- | :--- | :--- |
 | **Driver Class** | `org.h2.Driver` | |
-| **JDBC URL** | `jdbc:h2:mem:banking_db` | **🚨 注意：此欄位最重要，必須與設定檔完全一致才能連線到正確的記憶體資料庫。** |
+| **JDBC URL** | `jdbc:h2:mem:banking_db` | ** 注意：此欄位最重要，必須與設定檔完全一致才能連線到正確的記憶體資料庫。** |
 | **User Name** | `sa` | |
 | **Password** | `password` | |
 
