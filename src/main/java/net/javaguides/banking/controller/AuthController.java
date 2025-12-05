@@ -3,7 +3,15 @@ package net.javaguides.banking.controller;
 // 導入相關類別和套件
 
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+
 import net.javaguides.banking.entity.AppRole;
 import net.javaguides.banking.entity.Role;
 import net.javaguides.banking.entity.User;
@@ -17,12 +25,10 @@ import net.javaguides.banking.security.response.MessageResponse;
 import net.javaguides.banking.security.response.UserInfoResponse;
 import net.javaguides.banking.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,9 +36,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -43,6 +47,7 @@ import java.util.stream.Collectors;
  */
 @RestController                 // 標記為 REST 控制器，自動將方法回傳值序列化為 JSON
 @RequestMapping("/api/auth")    // 定義控制器的基礎路徑，所有端點都會以 /api/auth 開頭
+@Tag(name = "Authentication", description = "使用者認證相關 API") // 群組名稱
 public class AuthController {
 
     /**
@@ -88,40 +93,48 @@ public class AuthController {
      * @return ResponseEntity<?> 認證結果回應，成功時包含 JWT Token 和用戶資訊
      */
     @PostMapping("/public/signin") // 映射到 POST /api/auth/public/signin
+    @Operation(
+            summary = "使用者登入",
+            description = "驗證使用者帳密並回傳 JWT Token",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "登入成功"),
+                    @ApiResponse(responseCode = "401", description = "帳號或密碼錯誤")
+            }
+    )
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
 
         // 宣告認證結果變數，稍後存儲認證成功的 Authentication 物件
         Authentication authentication;
 
 
-            /**
-             * 關鍵認證步驟：執行用戶身份驗證
-             *
-             * 步驟分解：
-             * 1. 創建未認證的 UsernamePasswordAuthenticationToken
-             *    - 包含用戶輸入的用戶名和明文密碼
-             *    - 此時 isAuthenticated() 返回 false
-             *
-             * 2. authenticationManager.authenticate() 背後的完整流程：
-             *    a) ProviderManager 遍歷所有 AuthenticationProvider
-             *    b) 找到支援 UsernamePasswordAuthenticationToken 的 Provider（通常是 DaoAuthenticationProvider）
-             *    c) DaoAuthenticationProvider 執行以下步驟：
-             *       - 調用 UserDetailsService.loadUserByUsername() 從資料庫查詢用戶
-             *       - 檢查用戶帳戶狀態（是否啟用、未過期、未鎖定等）
-             *       - 使用 PasswordEncoder 比對輸入密碼與資料庫中的加密密碼
-             *       - 如果驗證成功，創建已認證的 Authentication 物件
-             *
-             * 3. 回傳已認證的 Authentication 物件：
-             *    - principal: UserDetails 物件（包含用戶詳細資訊）
-             *    - credentials: null（密碼已清空，基於安全考量）
-             *    - authorities: 用戶的權限列表
-             *    - isAuthenticated(): true
-             */
-            authentication = authenticationManager
-                    .authenticate(new UsernamePasswordAuthenticationToken(
-                            loginRequest.getUsername(),  // 用戶輸入的用戶名
-                            loginRequest.getPassword()   // 用戶輸入的明文密碼
-                    ));
+        /**
+         * 關鍵認證步驟：執行用戶身份驗證
+         *
+         * 步驟分解：
+         * 1. 創建未認證的 UsernamePasswordAuthenticationToken
+         *    - 包含用戶輸入的用戶名和明文密碼
+         *    - 此時 isAuthenticated() 返回 false
+         *
+         * 2. authenticationManager.authenticate() 背後的完整流程：
+         *    a) ProviderManager 遍歷所有 AuthenticationProvider
+         *    b) 找到支援 UsernamePasswordAuthenticationToken 的 Provider（通常是 DaoAuthenticationProvider）
+         *    c) DaoAuthenticationProvider 執行以下步驟：
+         *       - 調用 UserDetailsService.loadUserByUsername() 從資料庫查詢用戶
+         *       - 檢查用戶帳戶狀態（是否啟用、未過期、未鎖定等）
+         *       - 使用 PasswordEncoder 比對輸入密碼與資料庫中的加密密碼
+         *       - 如果驗證成功，創建已認證的 Authentication 物件
+         *
+         * 3. 回傳已認證的 Authentication 物件：
+         *    - principal: UserDetails 物件（包含用戶詳細資訊）
+         *    - credentials: null（密碼已清空，基於安全考量）
+         *    - authorities: 用戶的權限列表
+         *    - isAuthenticated(): true
+         */
+        authentication = authenticationManager
+                .authenticate(new UsernamePasswordAuthenticationToken(
+                        loginRequest.getUsername(),  // 用戶輸入的用戶名
+                        loginRequest.getPassword()   // 用戶輸入的明文密碼
+                ));
 
 
 
@@ -208,6 +221,7 @@ public class AuthController {
 
 
     @PostMapping("/public/signup")
+    @Operation(summary = "註冊新使用者")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
         // 檢查1：使用者名稱是否已存在
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
@@ -224,7 +238,7 @@ public class AuthController {
                 signUpRequest.getEmail(),
                 encoder.encode(signUpRequest.getPassword()),
                 signUpRequest.getRealName()
-                );
+        );
 
         // 步驟2：處理與指派角色
         Set<String> strRoles = signUpRequest.getRole();
@@ -265,6 +279,13 @@ public class AuthController {
     }
 
     @GetMapping("/user")
+    @Operation(summary = "取得當前使用者資訊", description = "需攜帶 JWT Token，回傳完整的 User 詳細資料")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功取得資訊",
+                    content = @Content(schema = @Schema(implementation = UserInfoResponse.class))),
+            @ApiResponse(responseCode = "401", description = "未授權 (Token 無效或過期)")
+    })
     public ResponseEntity<?> getUserDetails(@AuthenticationPrincipal UserDetails userDetails) {
         // 步驟 1: 透過 username 取得完整的 User Entity 物件
         User user = userService.findByUsername(userDetails.getUsername());
@@ -293,9 +314,12 @@ public class AuthController {
         return ResponseEntity.ok().body(response);
     }
 
-@GetMapping("/username")
+    @GetMapping("/username")
+    @Operation(summary = "取得當前使用者名稱", description = "簡易測試端點，需攜帶 JWT Token")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponse(responseCode = "200", description = "回傳使用者名稱字串")
     public String currentUserName(@AuthenticationPrincipal UserDetails userDetails){
         return userDetails !=null ? userDetails.getUsername() : "";
-}
+    }
 
 }
