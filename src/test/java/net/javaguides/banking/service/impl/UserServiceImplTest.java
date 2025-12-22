@@ -55,7 +55,7 @@ class UserServiceImplTest {
 
         testUser = new User();
         testUser.setUserId(1L);
-        testUser.setUserName("testUser");
+        testUser.setUsername("testUser");
         testUser.setEmail("test@example.com");
         testUser.setRole(userRole);
         testUser.setCreatedDate(LocalDateTime.now());
@@ -163,7 +163,7 @@ class UserServiceImplTest {
         // Assert
         assertNotNull(userDTO);
         assertEquals(testUser.getUserId(), userDTO.getUserId());
-        assertEquals(testUser.getUserName(), userDTO.getUserName());
+        assertEquals(testUser.getUsername(), userDTO.getUserName());
         assertEquals(testUser.getEmail(), userDTO.getEmail());
         assertEquals(testUser.getRole(), userDTO.getRole());
         // 這個測試間接驗證了 private 方法 convertToDto 的正確性
@@ -188,14 +188,14 @@ class UserServiceImplTest {
     void testFindByUsername_Success() {
         // Arrange
         String username = "testUser";
-        given(userRepository.findByUserName(username)).willReturn(Optional.of(testUser));
+        given(userRepository.findByUsername(username)).willReturn(Optional.of(testUser));
 
         // Act
         User foundUser = userService.findByUsername(username);
 
         // Assert
         assertNotNull(foundUser);
-        assertEquals(username, foundUser.getUserName());
+        assertEquals(username, foundUser.getUsername());
     }
 
 
@@ -204,7 +204,7 @@ class UserServiceImplTest {
     void testFindByUsername_NotFound_ThrowsException() {
         // Arrange
         String username = "nonExistentUser";
-        given(userRepository.findByUserName(username)).willReturn(Optional.empty());
+        given(userRepository.findByUsername(username)).willReturn(Optional.empty());
 
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
