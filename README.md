@@ -83,11 +83,6 @@
 | **API & DTO 工具** | `Lombok`, `Java Records`, `jakarta.validation` |
 
 -----
-
-這份 README 修改建議將原本的「本機直接執行 (Maven/H2)」流程，替換為您提供的「容器化執行 (Docker/MySQL)」流程。
-
-根據您提供的 `Dockerfile`（需要先有 JAR 檔）與 `docker-compose.yml`（定義了 MySQL 與應用程式的服務），以下是更新後的內容：
-
 ---
 
 ## 安裝與執行 (Installation & Setup) 
