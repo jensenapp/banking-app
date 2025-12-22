@@ -84,59 +84,98 @@
 
 -----
 
-## 安裝與執行 (Installation & Setup)
+這份 README 修改建議將原本的「本機直接執行 (Maven/H2)」流程，替換為您提供的「容器化執行 (Docker/MySQL)」流程。
+
+根據您提供的 `Dockerfile`（需要先有 JAR 檔）與 `docker-compose.yml`（定義了 MySQL 與應用程式的服務），以下是更新後的內容：
+
+---
+
+## 安裝與執行 (Installation & Setup) 
 
 ### 環境需求
 
-  * JDK 17 或更高版本
-  * Maven 3.8 或更高版本
+* **Docker Desktop** (或 Docker Engine + Docker Compose)
+* **JDK 17** (用於編譯專案)
+* **Maven 3.8+** (用於建置 JAR 檔)
 
 ### 執行步驟
------
 
-### 1\. 複製專案
+### 1. 複製專案
 
-請使用以下命令複製專案：
+請使用以下命令複製專案並進入目錄：
 
 ```bash
 git clone <your-repository-url>
 cd <project-directory>
+
 ```
 
-### 2\. 執行應用程式
+### 2. 建置 JAR 檔案
 
-專案預設使用 **H2 內嵌式資料庫**，因此無需額外配置。
-
-啟動時會**自動建立**兩個測試帳號：
-
-* **管理員:** `username=admin`, `password=adminPass`
-* **一般使用者:** `username=user1`, `password=password1`
-
-執行以下 Maven 命令啟動應用程式：
+由於 Dockerfile 需要引用編譯後的 JAR 檔，請先執行 Maven 打包命令：
 
 ```bash
-mvn spring-boot:run
+mvn clean package -DskipTests
+
 ```
 
->  應用程式啟動後，API 服務將運行於 **http://localhost:8080**。
+> **注意：** 確保 `target` 資料夾下已生成 `banking-app-0.0.1-SNAPSHOT.jar`。
 
-### 3\. 存取 H2 資料庫 (H2 Console)
+### 3. 啟動 Docker 容器
 
-應用程式啟動後，您可以進入 H2 Console 查看或驗證資料庫內容：
+使用 Docker Compose 一鍵啟動應用程式與資料庫服務：
 
-1.  開啟瀏覽器，訪問網址：**http://localhost:8080/h2-console**
-2.  出現登入畫面後，請確認欄位填寫如下（這些值對應於 `application.properties` 中的設定）：
+```bash
+docker-compose up -d --build
+
+```
+
+此命令將執行以下動作：
+
+1. 啟動 **MySQL 8.0** 資料庫 (對應本機連接埠 `3307`)。
+2. 建置並啟動 **Spring Boot 應用程式** (對應本機連接埠 `8080`)。
+
+### 4. 驗證服務與登入
+
+應用程式啟動後 (需等待約 10-30 秒讓資料庫完成初始化)，API 服務將運行於 **http://localhost:8080**。
+
+系統首次啟動時會**自動寫入**以下測試帳號至 MySQL 資料庫：
+
+* **管理員 (Admin):** `username=admin`, `password=adminPass`
+* **一般使用者 (User):** `username=user1`, `password=password1`
+
+您可以使用 **Swagger UI** 來測試 API：
+
+* **API 文件網址:** [http://localhost:8080/swagger-ui/index.html](https://www.google.com/search?q=http://localhost:8080/swagger-ui/index.html) (或 `/swagger-ui.html`)
+
+### 5. 連線至 MySQL 資料庫
+
+本專案在 Docker 環境下使用 **MySQL** 取代原本的 H2 資料庫。若您需要查看資料表內容，請使用資料庫管理工具 (如 DBeaver, MySQL Workbench) 進行連線。
+
+**連線資訊如下 (對應 `docker-compose.yml` 設定)：**
 
 | 欄位 | 數值 | 備註 |
-| :--- | :--- | :--- |
-| **Driver Class** | `org.h2.Driver` | |
-| **JDBC URL** | `jdbc:h2:mem:banking_db` | ** 注意：此欄位最重要，必須與設定檔完全一致才能連線到正確的記憶體資料庫。** |
-| **User Name** | `sa` | |
-| **Password** | `password` | |
+| --- | --- | --- |
+| **Host** | `localhost` |  |
+| **Port** | `3307` | **注意：** 容器內部是 3306，但對外映射為 **3307** 以避免衝突 |
+| **Database** | `banking_app` |  |
+| **Username** | `root` |  |
+| **Password** | `root` |  |
 
-3.  點擊 **Connect**。
-4.  登入成功後，若在左側看到 `USERS`, `ACCOUNTS` 等資料表，即代表設定成功。
+### 常見指令
 
+* **停止服務：**
+```bash
+docker-compose down
+
+```
+
+
+* **查看日誌 (Debug 用)：**
+```bash
+docker-compose logs -f app
+
+```
 -----
 
 
