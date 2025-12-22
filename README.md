@@ -215,8 +215,7 @@ docker-compose logs -f app
   * **請求**: `POST /api/accounts`
     ```json
     {
-        "accountHolderName": "user1",
-        "balance": 50000.00
+      "balance": 50000.00
     }
     ```
   * **回應**: `201 Created`
