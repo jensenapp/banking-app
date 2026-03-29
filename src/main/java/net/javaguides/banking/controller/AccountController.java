@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
 import net.javaguides.banking.dto.*;
+import net.javaguides.banking.security.response.MessageResponse;
 import net.javaguides.banking.service.AccountService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -42,7 +43,9 @@ public class AccountController {
             @ApiResponse(responseCode = "400", description = "輸入資料格式錯誤"),
             @ApiResponse(responseCode = "401", description = "未授權 (需登入)")
     })
-    public ResponseEntity<AccountDto> addAccount(@Valid @RequestBody AccountDto accountDto) {
+    public ResponseEntity<AccountDto> addAccount(@Valid @RequestBody CreateAccountRequest request) {
+
+        AccountDto accountDto = new AccountDto(null, null, request.balance());
 
         AccountDto account = accountService.createAccount(accountDto);
 
@@ -120,17 +123,17 @@ public class AccountController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "刪除帳戶", description = "永久刪除指定 ID 的帳戶 (僅限 ADMIN)")
-    public ResponseEntity<String> deleteById(@PathVariable Long id) {
+    public ResponseEntity<MessageResponse> deleteById(@PathVariable Long id) {
         accountService.deleteAccount(id);
-        return ResponseEntity.ok("Account deleted successfully");
+        return ResponseEntity.ok(new MessageResponse("Account deleted successfully"));
     }
 
     @PostMapping("/transfer")
     @PreAuthorize("@accountSecurityService.isOwner(authentication,#transferFundDTO.fromAccountId())")
     @Operation(summary = "資金轉帳", description = "將資金從一個帳戶轉移到另一個帳戶 (需驗證轉出帳戶擁有權)")
-    public ResponseEntity<String> transferFund(@Valid @RequestBody TransferFundDTO transferFundDTO) {
+    public ResponseEntity<MessageResponse> transferFund(@Valid @RequestBody TransferFundDTO transferFundDTO) {
         accountService.transferFunds(transferFundDTO);
-        return ResponseEntity.ok("transfer successful");
+        return ResponseEntity.ok(new MessageResponse("transfer successful"));
     }
 
     @GetMapping("/{id}/transactions")

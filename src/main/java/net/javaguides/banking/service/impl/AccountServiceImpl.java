@@ -30,7 +30,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 
-@Transactional
+
 @Service
 public class AccountServiceImpl implements AccountService {
 
@@ -152,19 +152,19 @@ public class AccountServiceImpl implements AccountService {
             try {
                 logger.info("嘗試取款:{},扣款帳號:{}", id, amount);
                 Account account = accountRepository.findById(id).orElseThrow(() -> {
-                    logger.error("取款失敗,查無帳號{}");
+                    logger.error("取款失敗,查無帳號{}", id);
                     return new AccountNotFoundException("Account does not exist");
                 });
 
                 if (account.getBalance().compareTo(amount) < 0) {
-                    logger.error("帳號{}餘額不足,取款失敗,帳戶餘額:{},取款金額{}", id, account.getBalance(), account);
+                    logger.error("帳號{}餘額不足,取款失敗,帳戶餘額:{},取款金額{}", id, account.getBalance(), amount);
                     throw new InsufficientAmountException("Insufficient amount");
                 }
 
 
                 account.setBalance(account.getBalance().subtract(amount));
                 accountRepository.save(account);
-                logger.info("帳號{}取款成功，新餘額｛｝", account.getBalance());
+                logger.info("帳號{}取款成功，新餘額{}", id, account.getBalance());
 
 
                 // 記錄交易

@@ -23,6 +23,7 @@ import net.javaguides.banking.security.request.SignupRequest;
 import net.javaguides.banking.security.response.LoginResponse;
 import net.javaguides.banking.security.response.MessageResponse;
 import net.javaguides.banking.security.response.UserInfoResponse;
+import net.javaguides.banking.security.services.UserDetailsImpl;
 import net.javaguides.banking.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -158,8 +159,7 @@ public class AuthController {
          * - UserDetails 包含：用戶名、加密密碼、帳戶狀態、權限列表等
          * - 這個物件是在 UserDetailsService.loadUserByUsername() 中創建的
          */
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         /**
          * 生成 JWT Token
          *
@@ -198,6 +198,7 @@ public class AuthController {
          * - jwtToken: JWT Token（用於後續 API 請求認證）
          */
         LoginResponse response = new LoginResponse(
+                userDetails.getId(),
                 userDetails.getUsername(),  // 已認證用戶的用戶名
                 roles,                      // 用戶角色權限列表
                 jwtToken                    // 生成的 JWT Token
@@ -242,23 +243,11 @@ public class AuthController {
 
         // 步驟2：處理與指派角色
         Set<String> strRoles = signUpRequest.getRole();
-        Role role;
 
-        if (strRoles == null || strRoles.isEmpty()) {
-            // 如果請求中未指定角色，給予預設的 USER 角色
-            role = roleRepository.findByRoleName(AppRole.ROLE_USER)
-                    .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-        } else {
-            // 根據請求中的角色字串，指派對應的角色
-            String roleStr = strRoles.iterator().next();
-            if (roleStr.equals("admin")) {
-                role = roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
-                        .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-            } else {
-                role = roleRepository.findByRoleName(AppRole.ROLE_USER)
-                        .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-            }
-        }
+
+        Role role = roleRepository.findByRoleName(AppRole.ROLE_USER)
+                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+
         user.setRole(role);
 
         // 步驟3：設定使用者帳號的預設屬性

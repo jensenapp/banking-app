@@ -1,5 +1,6 @@
 package net.javaguides.banking.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,7 +23,7 @@ public class UserDTO {
     private boolean enabled;
     private LocalDate credentialsExpiryDate;
     private LocalDate accountExpiryDate;
-    private String twoFactorSecret;
+
     private boolean isTwoFactorEnabled;
     private String signUpMethod;
     private Role role;

@@ -9,10 +9,12 @@ import java.util.List;
 @Getter
 public class LoginResponse {
     private String jwtToken;
+    private Long id;
     private String username;
     private List<String> roles;
 
-    public LoginResponse(String username, List<String> roles, String jwtToken) {
+    public LoginResponse(Long id, String username, List<String> roles, String jwtToken) {
+        this.id = id;
         this.username = username;
         this.roles = roles;
         this.jwtToken = jwtToken;
