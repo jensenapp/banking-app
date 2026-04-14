@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: bank-app-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: bank_app_db
+      MYSQL_USER: bank_user
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      # 綁定在 127.0.0.1 確保不對外暴露，並使用全新的 3308 Port 避開 Book EMS
+      - "127.0.0.1:3308:3306"
+    volumes:
+      - bank_db_data:/var/lib/mysql
+    networks:
+      - bank-network
+
+  backend:
+    build:
+      context: ./bank-backend
+    container_name: bank-app-backend
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      # 注意這裡的連線字串，db 指向當前的 mysql 容器，資料庫名稱為 bank_app_db
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/bank_app_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8
+      - SPRING_DATASOURCE_USERNAME=bank_user
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - SPRING_PROFILES_ACTIVE=prod
+    ports:
+      # 伺服器的 8082 對應到容器的 8080 (避開 Book EMS 的 8081)
+      - "8082:8080"
+    networks:
+      - bank-network
+
+  frontend:
+    build:
+      context: ./bank-frontend
+    container_name: bank-app-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      # 伺服器的 8086 對應到容器的 80 (避開 Book EMS 的 8085)
+      - "8086:80"
+    networks:
+      - bank-network
+
+networks:
+  bank-network:
+    driver: bridge
+
+volumes:
+  bank_db_data:

@@ -1,11 +1,18 @@
-# 1. 使用 Java 17 基礎映像檔 (配專案設定)
-FROM eclipse-temurin:17-jdk-alpine
-
-# 2. 設定容器內的工作目錄
+# Stage 1: Build the Spring Boot application
+FROM maven:3.9.4-eclipse-temurin-17-alpine AS build
 WORKDIR /app
+COPY pom.xml .
+# 下載依賴以加速後續建置
+RUN mvn dependency:go-offline
+COPY src ./src
+# 打包 jar 檔並跳過測試
+RUN mvn clean package -DskipTests
 
-# 3. 將剛剛打包好的 JAR 檔複製進去，並改名為 app.jar
-COPY target/banking-app-0.0.1-SNAPSHOT.jar app.jar
-
-# 4. 容器啟動時執行的指令
+# Stage 2: Run the application
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+# 從 Stage 1 複製打包好的 jar 檔
+COPY --from=build /app/target/*.jar app.jar
+# 暴露容器內的 8080 port (Spring Boot 預設)
+EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

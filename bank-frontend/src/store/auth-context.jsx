@@ -29,6 +29,7 @@ const authReducer = (prevState, action) => {
 };
 
 export const AuthProvider = ({ children }) => {
+  
   const initialAuthState = (() => {
     try {
       const jwtToken = localStorage.getItem("jwtToken");

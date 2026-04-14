@@ -1,37 +1,62 @@
-import React, { useEffect, useState } from "react";
-import { Form, useActionData, useNavigation, useNavigate, Link } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { register } from "../services/AuthService";
 
 export default function Signup() {
-  const actionData = useActionData();
-  const navigation = useNavigation();
   const navigate = useNavigate();
 
-  const isSubmitting = navigation.state === "submitting";
-
-  // 用本地 state 來處理「確認密碼」的即時比對，提升 UX
+  // 1. 為所有表單欄位建立本地 State
+  const [username, setUsername] = useState("");
+  const [realName, setRealName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  
+  // 錯誤提示與載入狀態
   const [passwordError, setPasswordError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 監聽後端回傳結果
-  useEffect(() => {
-    if (actionData?.success) {
-      toast.success("註冊成功！請使用新帳號登入系統。");
-      navigate("/login");
-    } else if (actionData?.errors) {
-      toast.error(actionData.errors.message || "註冊失敗，請檢查輸入資料");
-    }
-  }, [actionData, navigate]);
+  // 2. 傳統的表單送出處理函式
+  const handleFormSubmit = async (e) => {
+    e.preventDefault(); // 阻止表單預設的重整行為
 
-  // 在表單送出前，先在前端攔截密碼不一致的錯誤
-  const handleFormSubmit = (e) => {
+    // 前端攔截密碼不一致的錯誤
     if (password !== confirmPassword) {
-      e.preventDefault(); // 阻止表單送出給 Action
       setPasswordError("兩次輸入的密碼不一致！");
+      return; // 密碼不一致就直接中斷，不發送 API
     } else {
       setPasswordError("");
+    }
+
+    setIsSubmitting(true); // 開啟載入狀態，防止連點
+
+    // 依照後端 SignupRequest DTO 的格式準備 Payload
+    const signupData = {
+      username,
+      email,
+      password,
+      realName,
+      role: ["USER"], // 後端 DTO 要求是 Set<String>，傳陣列過去會自動轉型
+    };
+
+    try {
+      // 呼叫註冊 API
+      await register(signupData);
+      
+      // 成功處理
+      toast.success("註冊成功！請使用新帳號登入系統。");
+      navigate("/login");
+    } catch (error) {
+      // 失敗處理：攔截後端拋出的 400 錯誤 (例如: Username is already taken!)
+      if (error.response?.status === 400) {
+        const errorMessage = error.response.data.message || error.response.data;
+        toast.error(typeof errorMessage === 'string' ? errorMessage : "輸入格式不正確或帳號已存在");
+      } else {
+        toast.error("伺服器連線異常，請稍後再試。");
+      }
+    } finally {
+      setIsSubmitting(false); // 無論成功失敗，都要關閉載入狀態
     }
   };
 
@@ -47,31 +72,45 @@ export default function Signup() {
         </div>
 
         <div className="p-8">
-          <Form method="POST" className="space-y-5" onSubmit={handleFormSubmit}>
+          {/* 改回標準的 HTML <form> */}
+          <form className="space-y-5" onSubmit={handleFormSubmit}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              
               {/* 使用者帳號 */}
               <div className="sm:col-span-2">
                 <label htmlFor="username" className={labelStyle}>使用者帳號 (Username)</label>
-                <input id="username" name="username" type="text" required minLength={3} maxLength={20} className={inputStyle} placeholder="請輸入 3-20 個字元" />
+                <input 
+                  id="username" type="text" required minLength={3} maxLength={20} 
+                  value={username} onChange={(e) => setUsername(e.target.value)} // 新增雙向綁定
+                  className={inputStyle} placeholder="請輸入 3-20 個字元" 
+                />
               </div>
 
               {/* 真實姓名 */}
               <div>
                 <label htmlFor="realName" className={labelStyle}>真實姓名 (Real Name)</label>
-                <input id="realName" name="realName" type="text" required minLength={2} className={inputStyle} placeholder="例如：王小明" />
+                <input 
+                  id="realName" type="text" required minLength={2} 
+                  value={realName} onChange={(e) => setRealName(e.target.value)} // 新增雙向綁定
+                  className={inputStyle} placeholder="例如：王小明" 
+                />
               </div>
 
               {/* 電子信箱 */}
               <div>
                 <label htmlFor="email" className={labelStyle}>電子信箱 (Email)</label>
-                <input id="email" name="email" type="email" required className={inputStyle} placeholder="example@email.com" />
+                <input 
+                  id="email" type="email" required 
+                  value={email} onChange={(e) => setEmail(e.target.value)} // 新增雙向綁定
+                  className={inputStyle} placeholder="example@email.com" 
+                />
               </div>
 
               {/* 密碼 */}
               <div>
                 <label htmlFor="password" className={labelStyle}>密碼 (Password)</label>
                 <input 
-                  id="password" name="password" type="password" required minLength={6} 
+                  id="password" type="password" required minLength={6} 
                   value={password} onChange={(e) => setPassword(e.target.value)}
                   className={inputStyle} placeholder="至少 6 個字元" 
                 />
@@ -107,38 +146,9 @@ export default function Signup() {
                 前往登入
               </Link>
             </div>
-          </Form>
+          </form>
         </div>
       </div>
     </div>
   );
-}
-
-// ==========================================
-// Action Function (處理註冊 API 請求)
-// ==========================================
-export async function signupAction({ request }) {
-  const data = await request.formData();
-  
-  // 依照後端 SignupRequest DTO 的格式準備 Payload
-  const signupData = {
-    username: data.get("username"),
-    email: data.get("email"),
-    password: data.get("password"),
-    realName: data.get("realName"),
-    role: ["USER"] // 後端 DTO 要求是 Set<String>，傳陣列過去會自動轉型
-  };
-
-  try {
-    await register(signupData);
-    return { success: true };
-  } catch (error) {
-    // 攔截後端拋出的 400 錯誤 (例如: Username is already taken!)
-    if (error.response?.status === 400) {
-      // 處理 @Valid 驗證錯誤陣列，或是自訂的 MessageResponse
-      const errorMessage = error.response.data.message || error.response.data;
-      return { success: false, errors: { message: typeof errorMessage === 'string' ? errorMessage : "輸入格式不正確或帳號已存在" } };
-    }
-    throw new Response("伺服器連線異常，請稍後再試。", { status: 500 });
-  }
 }
