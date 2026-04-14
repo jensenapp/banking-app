@@ -34,7 +34,7 @@ services:
       - SPRING_PROFILES_ACTIVE=prod
     ports:
       # 伺服器的 8082 對應到容器的 8080 (避開 Book EMS 的 8081)
-      - "8082:8080"
+      - "8089:8080"
     networks:
       - bank-network
 
