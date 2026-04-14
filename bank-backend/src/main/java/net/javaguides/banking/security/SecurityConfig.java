@@ -76,8 +76,7 @@ public class SecurityConfig {
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         // --- 1. 設定 CSRF (跨站請求偽造) 保護 ---
        http.csrf(httpSecurityCsrfConfigurer -> httpSecurityCsrfConfigurer.disable());
-
-        http.cors(Customizer.withDefaults());
+       http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
         // --- 2. 設定 HTTP 請求的授權規則 ---
         http.authorizeHttpRequests((requests) -> requests
@@ -128,9 +127,9 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // 替換成你 React 實際的 port，通常是 3000 (CRA) 或 5173 (Vite)
-        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173"));
+        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173","https://bank.jensen-store.online"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
