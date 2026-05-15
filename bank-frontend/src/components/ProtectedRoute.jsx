@@ -1,5 +1,6 @@
 import { useAuth } from "../store/auth-context";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet} from "react-router-dom";
+import { toast } from 'react-toastify';
 
 export default function ProtectedRoute({allowedRoles}) {
   const { isAuthenticated,roles } = useAuth();

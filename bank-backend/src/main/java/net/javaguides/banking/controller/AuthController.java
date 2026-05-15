@@ -127,7 +127,6 @@ public class AuthController {
         );
 
         // 步驟2：處理與指派角色
-        Set<String> strRoles = signUpRequest.getRole();
 
         Role role = roleRepository.findByRoleName(AppRole.ROLE_USER)
                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));

@@ -230,6 +230,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    @Transactional
     public void transferFunds(TransferFundDTO transferFundDTO) {
         logger.info("從帳號{}向帳號{},發起金額為{}的轉帳", transferFundDTO.fromAccountId(), transferFundDTO.toAccountId(), transferFundDTO.amount());
         Long fromAccountId = transferFundDTO.fromAccountId();

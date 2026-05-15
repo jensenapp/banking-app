@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -142,7 +141,6 @@ public class AccountController {
     }
 
     @PostMapping("/transfer")
-    @Transactional
     @PreAuthorize("@accountSecurityService.isOwner(authentication,#transferFundDTO.fromAccountId())")
     @Operation(summary = "資金轉帳", description = "將資金從一個帳戶轉移到另一個帳戶 (需驗證轉出帳戶擁有權)")
     public ResponseEntity<MessageResponse> transferFund(@Valid @RequestBody TransferFundDTO transferFundDTO) {
