@@ -5,9 +5,18 @@
 此專案主要用於展示後端工程能力，包含 RESTful API 設計、Spring Security 權限控管、JPA 關聯建模、交易一致性處理、分頁查詢、例外處理、Swagger API 文件，以及 GitHub Actions 自動部署到 VPS。
 
 ---
+## 線上 Demo
+
+- 線上 Demo：https://bank.jensen-store.online/
+- API 文件：https://bank-api.jensen-store.online/swagger-ui/index.html
+
+> Demo 環境僅供面試展示與功能測試使用，資料可能會因測試操作而變動。
+
+---
+
 ## Demo 測試帳號
 
-> 以下帳號僅供 Demo / 面試展示使用，請勿用於正式環境。正式部署時應改由環境變數或初始化腳本建立管理員帳號，並更換預設密碼。
+> 以下帳號僅供 Demo / 面試展示使用，請勿用於正式環境。正式環境應改由環境變數、初始化腳本或後台流程建立管理員帳號，並更換預設密碼。
 
 | 角色 | 帳號 | 密碼 | 可操作功能 |
 |---|---|---|---|
