@@ -28,6 +28,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -47,6 +48,9 @@ public class AccountServiceImpl implements AccountService {
 
     private AccountMapper accountMapper;
 
+    private TransactionTemplate transactionTemplate;
+
+
     private static final Logger logger = LoggerFactory.getLogger(AccountServiceImpl.class);
 
 //    private static final String TRANSACTION_TYPE_DEPOSIT = "deposit";
@@ -54,11 +58,12 @@ public class AccountServiceImpl implements AccountService {
 //    private static final String TRANSACTION_TYPE_TRANSACTION = "transaction";
 
 
-    public AccountServiceImpl(AccountRepository accountRepository, TransactionRepository transactionRepository, UserRepository userRepository, AccountMapper accountMapper) {
+    public AccountServiceImpl(AccountRepository accountRepository, TransactionRepository transactionRepository, UserRepository userRepository, AccountMapper accountMapper, TransactionTemplate transactionTemplate) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.userRepository = userRepository;
         this.accountMapper = accountMapper;
+        this.transactionTemplate = transactionTemplate;
     }
 
     @Override
@@ -123,33 +128,35 @@ public class AccountServiceImpl implements AccountService {
 
         final int MAX_ATTEMPS = 3;
 
-        for (int attemp = 0; attemp < MAX_ATTEMPS; attemp++) {
+        for (int attemp = 1; attemp <= MAX_ATTEMPS; attemp++) {
 
             try {
-                logger.info("嘗試儲蓄{}進入帳號:{}", amount, id);
-                Account account = accountRepository.
-                        findById(id).orElseThrow(() -> {
-                            logger.error("儲蓄失敗,查無ID:{}", id);
-                            return new AccountNotFoundException("Account does not exist");
-                        });
+              return  transactionTemplate.execute(status -> {
+                  logger.info("嘗試儲蓄{}進入帳號:{}", amount, id);
+                  Account account = accountRepository.
+                          findById(id).orElseThrow(() -> {
+                              logger.error("儲蓄失敗,查無ID:{}", id);
+                              return new AccountNotFoundException("Account does not exist");
+                          });
 
-                account.setBalance(account.getBalance().add(amount));
+                  account.setBalance(account.getBalance().add(amount));
 
-                Account saveAccount = accountRepository.save(account);
-                logger.info("儲蓄成功,帳號:{},新餘額:{}", id, saveAccount.getBalance());
+                  Account saveAccount = accountRepository.saveAndFlush(account);
+                  logger.info("儲蓄成功,帳號:{},新餘額:{}", id, saveAccount.getBalance());
 
 
-                // 記錄交易
-                Transaction transaction = new Transaction();
-                transaction.setAccountId(id);
-                transaction.setAmount(amount);
-                transaction.setTimestamp(LocalDateTime.now());
-                transaction.setTransactionType(TransactionType.DEPOSIT);
-                transactionRepository.save(transaction);
+                  // 記錄交易
+                  Transaction transaction = new Transaction();
+                  transaction.setAccountId(id);
+                  transaction.setAmount(amount);
+                  transaction.setTimestamp(LocalDateTime.now());
+                  transaction.setTransactionType(TransactionType.DEPOSIT);
+                  transactionRepository.save(transaction);
 
-                AccountDto accountDto = accountMapper.mapTOAccountDto(saveAccount);
+                  AccountDto accountDto = accountMapper.mapTOAccountDto(saveAccount);
 
-                return accountDto;
+                  return accountDto;
+              });
 
             } catch (ObjectOptimisticLockingFailureException e) {
                 // 發生衝突，記錄日誌後，迴圈將自動重試
@@ -166,40 +173,42 @@ public class AccountServiceImpl implements AccountService {
 
         final int MAX_ATTEMP=3;
 
-        for (int attemp = 0; attemp < MAX_ATTEMP; attemp++) {
+        for (int attemp = 1; attemp <= MAX_ATTEMP; attemp++) {
 
 
             try {
-                logger.info("嘗試取款:{},扣款帳號:{}", accountId, amount);
-                Account account = accountRepository.findById(accountId).orElseThrow(() -> {
-                    logger.error("取款失敗,查無帳號{}", accountId);
-                    return new AccountNotFoundException("Account does not exist");
+               return transactionTemplate.execute(status -> {
+                    logger.info("嘗試取款:{},扣款帳號:{}", amount, accountId);
+                    Account account = accountRepository.findById(accountId).orElseThrow(() -> {
+                        logger.error("取款失敗,查無帳號{}", accountId);
+                        return new AccountNotFoundException("Account does not exist");
+                    });
+
+                    if (account.getBalance().compareTo(amount) < 0) {
+                        logger.error("帳號{}餘額不足,取款失敗,帳戶餘額:{},取款金額{}", accountId, account.getBalance(), amount);
+                        throw new InsufficientAmountException("Insufficient amount");
+                    }
+
+
+                    account.setBalance(account.getBalance().subtract(amount));
+                    accountRepository.saveAndFlush(account);
+                    logger.info("帳號{}取款成功，新餘額{}", accountId, account.getBalance());
+
+
+                    // 記錄交易
+                    Transaction transaction = new Transaction();
+                    transaction.setAccountId(accountId);
+                    transaction.setAmount(amount);
+                    transaction.setTimestamp(LocalDateTime.now());
+                    transaction.setTransactionType(TransactionType.WITHDRAW);
+
+                    transactionRepository.save(transaction);
+
+
+                    AccountDto accountDto = accountMapper.mapTOAccountDto(account);
+
+                    return accountDto;
                 });
-
-                if (account.getBalance().compareTo(amount) < 0) {
-                    logger.error("帳號{}餘額不足,取款失敗,帳戶餘額:{},取款金額{}", accountId, account.getBalance(), amount);
-                    throw new InsufficientAmountException("Insufficient amount");
-                }
-
-
-                account.setBalance(account.getBalance().subtract(amount));
-                accountRepository.save(account);
-                logger.info("帳號{}取款成功，新餘額{}", accountId, account.getBalance());
-
-
-                // 記錄交易
-                Transaction transaction = new Transaction();
-                transaction.setAccountId(accountId);
-                transaction.setAmount(amount);
-                transaction.setTimestamp(LocalDateTime.now());
-                transaction.setTransactionType(TransactionType.WITHDRAW);
-
-                transactionRepository.save(transaction);
-
-
-                AccountDto accountDto = accountMapper.mapTOAccountDto(account);
-
-                return accountDto;
             } catch (ObjectOptimisticLockingFailureException e) {
                 logger.warn("帳戶{} 存款發生併發衝突，準備重試...", accountId);
             }
