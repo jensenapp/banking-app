@@ -5,6 +5,7 @@ import net.javaguides.banking.dto.CreateAccountRequest;
 import net.javaguides.banking.dto.TransactionDTO;
 import net.javaguides.banking.dto.TransferFundDTO;
 import net.javaguides.banking.entity.Account;
+import net.javaguides.banking.entity.IdempotencyRecord;
 import net.javaguides.banking.entity.Transaction;
 import net.javaguides.banking.entity.User;
 import net.javaguides.banking.enums.TransactionType;
@@ -13,12 +14,14 @@ import net.javaguides.banking.exception.AccountNotFoundException;
 import net.javaguides.banking.exception.InsufficientAmountException;
 import net.javaguides.banking.mapper.AccountMapper;
 import net.javaguides.banking.repository.AccountRepository;
+import net.javaguides.banking.repository.IdempotencyRepository;
 import net.javaguides.banking.repository.TransactionRepository;
 import net.javaguides.banking.repository.UserRepository;
 import net.javaguides.banking.security.services.UserDetailsImpl;
 import net.javaguides.banking.service.AccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -50,6 +53,8 @@ public class AccountServiceImpl implements AccountService {
 
     private TransactionTemplate transactionTemplate;
 
+    private IdempotencyRepository idempotencyRepository;
+
 
     private static final Logger logger = LoggerFactory.getLogger(AccountServiceImpl.class);
 
@@ -58,12 +63,18 @@ public class AccountServiceImpl implements AccountService {
 //    private static final String TRANSACTION_TYPE_TRANSACTION = "transaction";
 
 
-    public AccountServiceImpl(AccountRepository accountRepository, TransactionRepository transactionRepository, UserRepository userRepository, AccountMapper accountMapper, TransactionTemplate transactionTemplate) {
+    public AccountServiceImpl(AccountRepository accountRepository,
+                              TransactionRepository transactionRepository,
+                              UserRepository userRepository,
+                              AccountMapper accountMapper,
+                              TransactionTemplate transactionTemplate,
+                              IdempotencyRepository idempotencyRepository) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.userRepository = userRepository;
         this.accountMapper = accountMapper;
         this.transactionTemplate = transactionTemplate;
+        this.idempotencyRepository = idempotencyRepository;
     }
 
     @Override
@@ -249,6 +260,17 @@ public class AccountServiceImpl implements AccountService {
         if (fromAccountId.equals(toAccountId)) {
             logger.error("轉帳失敗,不能轉帳給相同的帳號{}", fromAccountId);
             throw new AccountException("不能轉帳到相同帳戶");
+        }
+
+        IdempotencyRecord idempotencyRecord = new IdempotencyRecord();
+        idempotencyRecord.setIdempotencyKey(transferFundDTO.idempotencyKey());
+        idempotencyRecord.setCreatedAt(LocalDateTime.now());
+
+        try {
+            idempotencyRepository.saveAndFlush(idempotencyRecord);
+        } catch (DataIntegrityViolationException e) {
+            logger.warn("偵測到重複轉帳請求，idempotencyKey={}",transferFundDTO.idempotencyKey());
+            throw new AccountException("Duplicate transfer request");
         }
 
         Account account1, account2;

@@ -1,5 +1,5 @@
 // src/components/TransferPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { getAccount, transfer } from '../services/AccountService';
@@ -14,6 +14,8 @@ export default function TransferPage() {
   
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+
+    const idempotencyKeyRef = useRef(crypto.randomUUID());
 
   // 進入頁面時，抓取轉出帳戶的資訊，確認餘額與身份
   useEffect(() => {
@@ -45,7 +47,8 @@ export default function TransferPage() {
       await transfer({
         fromAccountId: id,
         toAccountId: numTargetId,
-        amount: numAmount
+        amount: numAmount,
+          idempotencyKey:idempotencyKeyRef.current
       });
       
       toast.success(`成功轉帳 $${numAmount.toLocaleString()} 至帳戶 #${numTargetId}！`);
