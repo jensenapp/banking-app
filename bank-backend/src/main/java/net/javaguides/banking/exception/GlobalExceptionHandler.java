@@ -29,18 +29,28 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                                                                   HttpHeaders headers,
                                                                   HttpStatusCode status,
                                                                   WebRequest request) {
-        Map<String, String> errors = new HashMap<>();
+        Map<String, String> fieldErrors = new HashMap<>();
 
         ex.getBindingResult().getAllErrors().forEach((error -> {
             String fieldName = ((FieldError) error).getField();
             String message = error.getDefaultMessage();
-            errors.put(fieldName, message);
+            fieldErrors.put(fieldName, message);
         }));
-// 記錄驗證錯誤
-        logger.warn("Validation error occurred: {}", errors);
 
-        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+        ErrorDetails errorDetails = new ErrorDetails(
+                LocalDateTime.now(),
+                "Request validation failed",
+                request.getDescription(false),
+                "VALIDATION_FAILED",
+                fieldErrors
+        );
+
+// 記錄驗證錯誤
+        logger.warn("Validation error occurred: {}", fieldErrors);
+
+        return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
     }
+
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorDetails> handleAuthenticationException(AuthenticationException authenticationException,WebRequest webRequest){

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import net.javaguides.banking.exception.ErrorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -12,52 +13,57 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.time.LocalDateTime;
 
 /**
- * 此類別用於自訂處理未經授權 (Unauthorized) 的請求。
- * 當使用者嘗試存取需要驗證的資源，但未提供或提供了無效的憑證時，
- * Spring Security 會觸發此進入點 (Entry Point)。
+ * 自訂的身份驗證進入點 (Authentication Entry Point)。
+ * * 作用：當使用者嘗試存取受保護（需登入）的 API 資源，
+ * 但未提供 JWT Token、Token 已過期，或 Token 無效時，Spring Security 會攔截該請求並觸發此類別。
+ * 我們在這裡統一回傳 HTTP 401 (Unauthorized) 狀態碼，以及標準化的 ErrorDetails JSON 錯誤格式。
  */
 @Component
 public class AuthEntryPointJwt implements AuthenticationEntryPoint {
 
+    // 建立 Logger，用於記錄系統日誌
     private static final Logger logger = LoggerFactory.getLogger(AuthEntryPointJwt.class);
 
+    // 建立 Jackson 的 ObjectMapper，用於將 Java 物件 (ErrorDetails) 序列化轉成 JSON 格式字串
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     /**
-     * 這個方法會在偵測到未經授權的請求時被呼叫。
+     * 當身份驗證失敗時，Spring Security 會自動呼叫這個 commence 方法。
      *
-     * @param request       傳入的 HTTP 請求。
-     * @param response      準備回傳的 HTTP 回應。
-     * @param authException 觸發此方法的驗證例外。
+     * @param request       使用者的 HTTP 請求物件 (可以從中獲取請求路徑等資訊)
+     * @param response      準備回傳給使用者的 HTTP 回應物件
+     * @param authException 導致驗證失敗的例外狀況物件 (包含具體的錯誤原因)
+     * @throws IOException 當寫入 HTTP Response 發生錯誤時拋出
      */
     @Override
-    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
-            throws IOException, ServletException {
+    public void commence(HttpServletRequest request,
+                         HttpServletResponse response,
+                         AuthenticationException authException)
+            throws IOException {
 
-        // 1. 記錄錯誤：使用 logger 記錄未授權的錯誤訊息，方便後續追蹤與除錯。
-        logger.error("Unauthorized error: {}", authException.getMessage());
+        // 1. 記錄警告日誌 (Log)，方便後端開發人員從後台追蹤誰在嘗試未授權存取
+        logger.warn("Unauthorized error: {}", authException.getMessage());
 
-        // 2. 設定回應標頭 (Header)：
-        //    - 將 Content-Type 設定為 application/json，告知客戶端回傳的是 JSON 格式的資料。
-        //    - 將 HTTP 狀態碼設定為 401 (SC_UNAUTHORIZED)，表示請求缺乏有效的驗證憑證。
+        // 2. 設定 HTTP 回應的 Content-Type 為 JSON (application/json)
+        // 告訴前端：接下來回傳的內容是 JSON 格式，請用 JSON 解析
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+
+        // 3. 設定 HTTP 狀態碼為 401 Unauthorized (未經授權)
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 
-        // 3. 建立回應主體 (Body)：
-        //    - 建立一個 Map 物件來存放要回傳給客戶端的錯誤資訊。
-        //    - 包含狀態碼、錯誤類型、從例外中取得的詳細訊息以及請求的路徑。
-        final Map<String, Object> body = new HashMap<>();
-        body.put("status", HttpServletResponse.SC_UNAUTHORIZED);
-        body.put("error", "Unauthorized");
-        body.put("message", authException.getMessage());
-        body.put("path", request.getServletPath());
+        // 4. 建立統一的錯誤訊息結構
+        // 使用「自訂 4 參數建構子」，因為這不是表單驗證錯誤，不需要 fieldErrors
+        ErrorDetails errorDetails = new ErrorDetails(
+                LocalDateTime.now(),                        // timestamp: 發生時間
+                "Unauthorized",                             // message: 簡短錯誤提示
+                "uri=" + request.getServletPath(),          // details: 記錄使用者當時想呼叫的 API 路徑 (例如 /api/accounts)
+                "AUTHENTICATION_FAILED"                     // errorCode: 自定義錯誤碼
+        );
 
-        // 4. 轉換為 JSON 並寫入回應：
-        //    - 建立 ObjectMapper 物件，這是 Jackson 函式庫的核心，用來在 Java 物件和 JSON 之間進行轉換。
-        //    - 使用 writeValue 方法將 body 這個 Map 物件轉換成 JSON 字串，並直接寫入到回應的輸出流 (Output Stream) 中。
-        final ObjectMapper mapper = new ObjectMapper();
-        mapper.writeValue(response.getOutputStream(), body);
+        // 5. 將 errorDetails 物件轉換成 JSON，並直接寫入到 HTTP Response 的輸出流中回傳給前端
+        objectMapper.writeValue(response.getOutputStream(), errorDetails);
     }
 }

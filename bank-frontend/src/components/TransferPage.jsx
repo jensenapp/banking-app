@@ -55,6 +55,7 @@ export default function TransferPage() {
       navigate('/dashboard'); // 轉帳成功後導回儀表板
     } catch (error) {
       toast.error(error.response?.data?.message || "轉帳失敗，請確認餘額或帳戶狀態");
+        idempotencyKeyRef.current = crypto.randomUUID(); // 失敗後換新 key,每次真正的「新嘗試」都帶新 key
       setIsProcessing(false);
     }
   };
