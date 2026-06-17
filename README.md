@@ -41,6 +41,9 @@
 - 使用 Axios Interceptor 自動附加 JWT Token
 - 使用 Docker Compose 一鍵啟動前端、後端、MySQL
 - 使用 GitHub Actions 透過 SSH 自動部署到 VPS
+- 使用 k6 對登入、帳戶查詢、交易紀錄、存提款與轉帳 API 進行本機壓力測試
+- 透過併發壓測驗證樂觀鎖、悲觀鎖、retry 與 idempotency key 設計
+- 使用 SQL 驗證壓測後帳戶餘額、交易紀錄與冪等性資料一致性
 
 ---
 
@@ -529,7 +532,65 @@ GitHub Secrets 需設定：
 ---
 
 
+## Load Testing / 壓力測試
+
+本專案除了單元測試與 Controller 測試外，也使用 k6 對核心 API 進行本機壓力測試，用來驗證系統在多使用者併發情境下的穩定性、交易一致性與查詢效能。
+
+壓測重點包含：
+
+- JWT 登入是否穩定
+- 帳戶列表查詢效能
+- 交易紀錄分頁查詢效能
+- 存款 / 提款在高併發下的樂觀鎖處理
+- 轉帳在高併發下的悲觀鎖、死鎖風險與冪等性處理
+- 是否出現 500 Internal Server Error
+- 是否發生重複轉帳、餘額錯誤或交易紀錄不一致
+
+---
+
+### 壓測環境
+
+目前壓測環境為本機開發環境：
+
+| 項目 | 設定 |
+|---|---|
+| Backend | IntelliJ 啟動 Spring Boot |
+| Database | 本機 MySQL |
+| Load Testing Tool | k6 |
+| API Base URL | `http://localhost:8080/api` |
+
+> 注意：壓測會實際修改資料庫中的帳戶餘額與交易紀錄，請勿直接對正式環境或 Demo 環境執行高併發存款、提款與轉帳測試。
+
+---
+
+### 本機測試帳號與資料
+
+| 角色 | username | password | 用途 |
+|---|---|---|---|
+| 一般使用者 | `user1` | `password1` | 登入、查詢自己的帳戶、查詢交易紀錄、轉帳 |
+| 管理員 | `admin` | `adminPass` | 存款、提款、查詢全部帳戶 |
+| 一般使用者 | `user2` | - | 作為轉帳收款人 |
+
+目前本機可用帳戶資料範例：
+
+| Account ID | 所屬使用者 | 用途 |
+|---:|---|---|
+| `2` | `user1` | 轉出帳戶、查詢交易紀錄、存提款測試 |
+| `3` | `user2` | 轉入帳戶 |
+
+> 帳戶餘額會因每次壓測而變動，實際測試前請先確認資料庫中的帳戶 ID 與餘額。
+
+---
+
+### k6 測試檔案
+
+k6 測試腳本放置於：
 
 ```text
-Backend / Java / Spring Boot / React / Docker
-```
+k6-tests/
+├── common.js
+├── 01-smoke.js
+├── 02-login-load.js
+├── 03-read-load.js
+├── 04-money-concurrency.js
+└── 05-transfer-idempotency.js
