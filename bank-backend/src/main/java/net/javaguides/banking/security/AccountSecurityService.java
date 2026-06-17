@@ -14,13 +14,12 @@ public class AccountSecurityService {
 
     private final AccountRepository accountRepository;
 
-  public boolean isOwner(Authentication authentication,Long id){
-        Account account = accountRepository.findById(id).orElseThrow(() -> new RuntimeException("account not found"));
-        UserDetailsImpl userDetails=(UserDetailsImpl) authentication.getPrincipal();
-        if (account.getUser()==null) {
+    public boolean isOwner(Authentication authentication, Long id) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl userDetails)) {
             return false;
         }
-        return userDetails.getId().equals(account.getUser().getUserId());
+
+        return accountRepository.existsByIdAndUser_UserId(id, userDetails.getId());
     }
 
 }

@@ -23,4 +23,6 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     Long countByUser_UserId(Long userId);
 
+    boolean existsByIdAndUser_UserId(Long accountId, Long userId);
+
 }

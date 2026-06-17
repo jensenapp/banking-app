@@ -84,6 +84,7 @@ public class SecurityConfig {
                 .requestMatchers("/v3/api-docs/**").permitAll()
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/swagger-ui.html").permitAll()
+
                 // 規則 2.2 (兜底規則): 除了上述規則之外的任何其他請求 (anyRequest)，都必須經過身份驗證 (authenticated)。
                 .anyRequest().authenticated()
         );
@@ -112,6 +113,7 @@ public class SecurityConfig {
 
 // 2. 在指定的過濾器之前，加入我們的自定義過濾器
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+
         // --- 4. 建構並返回 SecurityFilterChain 物件 ---
         return http.build();
     }

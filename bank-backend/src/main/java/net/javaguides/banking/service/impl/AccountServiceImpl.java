@@ -224,7 +224,7 @@ public class AccountServiceImpl implements AccountService {
                 logger.warn("帳戶{} 存款發生併發衝突，準備重試...", accountId);
             }
         }
-        throw new AccountException("存款操作因高併發衝突而失敗，請稍後再試。");
+        throw new AccountException("提款操作因高併發衝突而失敗，請稍後再試。");
     }
 
     @Transactional(readOnly = true)
