@@ -14,7 +14,7 @@ public class AccountSecurityService {
 
     private final AccountRepository accountRepository;
 
-    boolean isOwner(Authentication authentication,Long id){
+  public boolean isOwner(Authentication authentication,Long id){
         Account account = accountRepository.findById(id).orElseThrow(() -> new RuntimeException("account not found"));
         UserDetailsImpl userDetails=(UserDetailsImpl) authentication.getPrincipal();
         if (account.getUser()==null) {
