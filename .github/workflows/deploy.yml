@@ -20,24 +20,23 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }} # 這裡放入你準備好的 github-actions-key-v2 的私鑰
+          key: ${{ secrets.VPS_SSH_KEY }}
           envs: SECRET_DB_ROOT,SECRET_DB_PASS,SECRET_JWT
           script: |
-            # 1. 建立並進入 Banking App 專屬的部署目錄 (與 Book EMS 完全隔離)
+            # 1. 建立並進入 Banking App 專屬的部署目錄
             mkdir -p ~/banking-app-deploy
             cd ~/banking-app-deploy
 
             # 2. 檢查是否已經有專案檔案，沒有就 Clone，有就 Pull
             if [ ! -d ".git" ]; then
               echo "首次部署：正在 Clone 儲存庫..."
-              # 注意：如果是 Private Repo，這裡的 URL 需要包含 GitHub Token，或是透過 SSH 方式 Clone
               git clone https://github.com/jensenapp/banking-app.git .
             else
               echo "更新部署：正在 Pull 最新程式碼..."
               git pull origin main
             fi
 
-            # 3. 動態生成 .env 檔案 (使用 EOF 區塊最安全，不會外洩密碼到指令紀錄中)
+            # 3. 動態生成 .env 檔案
             echo "正在建立環境變數設定檔..."
             cat <<EOF > .env
             DB_ROOT_PASSWORD=${SECRET_DB_ROOT}
@@ -45,9 +44,12 @@ jobs:
             JWT_SECRET=${SECRET_JWT}
             EOF
 
-            # 4. 關閉舊容器、重新編譯並以背景模式啟動新容器
-            docker compose down
-            docker compose up -d --build
+            # 4. 先重新編譯 Image，成功後再更新容器
+            docker compose build
+            docker compose up -d
 
-            # 5. 清理沒有被標籤 (dangling) 的舊 Image，避免 VPS 儲存空間爆滿
+            # 5. 清理沒有被標籤的舊 Image，避免 VPS 儲存空間爆滿
             docker image prune -f
+
+            # 6. 顯示目前容器狀態，方便 GitHub Actions log 檢查
+            docker compose ps
