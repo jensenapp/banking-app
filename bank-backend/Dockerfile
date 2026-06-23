@@ -6,8 +6,7 @@ COPY pom.xml .
 RUN mvn dependency:go-offline
 COPY src ./src
 # 打包 jar 檔並跳過測試
-RUN mvn clean package -DskipTests
-
+RUN mvn clean package -Dmaven.test.skip=true
 # Stage 2: Run the application
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
