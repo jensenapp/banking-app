@@ -73,8 +73,7 @@ class UserServiceImplTest {
         given(userRepository.findById(userId)).willReturn(Optional.of(testUser));
         // 當 roleRepository.findByRoleName 被呼叫時，回傳準備好的 adminRole
         given(roleRepository.findByRoleName(AppRole.ROLE_ADMIN)).willReturn(Optional.of(adminRole));
-        // 當 userRepository.save 被呼叫時，直接回傳傳入的 User 物件
-        given(userRepository.save(any(User.class))).willAnswer(invocation -> invocation.getArgument(0));
+
 
         // Act (執行)
         userService.updateUserRole(userId, newRoleName);
@@ -117,16 +116,17 @@ class UserServiceImplTest {
     void testUpdateUserRole_RoleNotFound_ThrowsException() {
         // Arrange
         Long userId = 1L;
-        String newRoleName = "ROLE_SUPER_ADMIN"; // 一個不存在的角色
+        String newRoleName = "ROLE_ADMIN";
+
         given(userRepository.findById(userId)).willReturn(Optional.of(testUser));
-        // 模擬找不到角色
-        given(roleRepository.findByRoleName(any(AppRole.class))).willReturn(Optional.empty());
+        given(roleRepository.findByRoleName(AppRole.ROLE_ADMIN)).willReturn(Optional.empty());
 
         // Act & Assert
-        // 斷言執行 updateUserRole 會拋出 RuntimeException
-        assertThrows(RuntimeException.class, () -> {
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             userService.updateUserRole(userId, newRoleName);
         });
+
+        assertEquals("Role not found", exception.getMessage());
 
         // 驗證因為找不到角色，save 方法從未被呼叫
         verify(userRepository, never()).save(any(User.class));

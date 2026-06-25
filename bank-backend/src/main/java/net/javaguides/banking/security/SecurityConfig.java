@@ -85,6 +85,8 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/swagger-ui.html").permitAll()
 
+                .requestMatchers("/actuator/health").permitAll()
+
                 // 規則 2.2 (兜底規則): 除了上述規則之外的任何其他請求 (anyRequest)，都必須經過身份驗證 (authenticated)。
                 .anyRequest().authenticated()
         );

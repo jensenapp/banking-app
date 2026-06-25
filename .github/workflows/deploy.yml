@@ -3,17 +3,71 @@ name: Deploy Banking App to VPS
 on:
   push:
     branches:
-      - main  # 只有推送到 main 分支時才會觸發自動部署
+      - main
 
 jobs:
-  deploy:
+  test:
+    name: Run tests and build checks
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: banking_app
+          MYSQL_USER: banking_user
+          MYSQL_PASSWORD: testpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      - name: Run backend tests
+        working-directory: bank-backend
+        env:
+          MYSQLHOST: 127.0.0.1
+          MYSQLPORT: 3306
+          MYSQLDATABASE: banking_app
+          MYSQLUSER: banking_user
+          MYSQLPASSWORD: testpass
+          JWT_SECRET: dGhpc0lzQVRlc3RTZWNyZXRLZXlGb3JKd3RUb2tlbkdlbmVyYXRpb24xMjM0NTY=
+        run: mvn -B clean test
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build frontend
+        working-directory: bank-frontend
+        run: |
+          npm install
+          npm run build
+
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: test
 
     steps:
       - name: 執行 SSH 連線與自動化部署指令
         uses: appleboy/ssh-action@v1.0.3
         env:
-          # 從 GitHub Secrets 讀取敏感變數，準備傳入 SSH 環境中
           SECRET_DB_ROOT: ${{ secrets.DB_ROOT_PASSWORD }}
           SECRET_DB_PASS: ${{ secrets.DB_PASSWORD }}
           SECRET_JWT: ${{ secrets.JWT_SECRET }}
@@ -23,17 +77,20 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           envs: SECRET_DB_ROOT,SECRET_DB_PASS,SECRET_JWT
           script: |
+            set -e
+
             # 1. 建立並進入 Banking App 專屬的部署目錄
             mkdir -p ~/banking-app-deploy
             cd ~/banking-app-deploy
 
-            # 2. 檢查是否已經有專案檔案，沒有就 Clone，有就 Pull
+            # 2. 檢查是否已經有專案檔案，沒有就 Clone，有就更新到 main 最新版本
             if [ ! -d ".git" ]; then
               echo "首次部署：正在 Clone 儲存庫..."
               git clone https://github.com/jensenapp/banking-app.git .
             else
-              echo "更新部署：正在 Pull 最新程式碼..."
-              git pull origin main
+              echo "更新部署：正在同步 main 最新程式碼..."
+              git fetch origin main
+              git reset --hard origin/main
             fi
 
             # 3. 動態生成 .env 檔案
@@ -48,8 +105,46 @@ jobs:
             docker compose build
             docker compose up -d
 
-            # 5. 清理沒有被標籤的舊 Image，避免 VPS 儲存空間爆滿
+            # 5. 部署後健康檢查
+            echo "等待服務啟動並執行 health check..."
+
+            for i in {1..30}; do
+              FRONTEND_OK=false
+              BACKEND_OK=false
+
+              if curl -fsS http://127.0.0.1:8086 > /dev/null; then
+                FRONTEND_OK=true
+              fi
+
+              if curl -fsS http://127.0.0.1:8089/actuator/health > /dev/null; then
+                BACKEND_OK=true
+              fi
+
+              if [ "$FRONTEND_OK" = true ] && [ "$BACKEND_OK" = true ]; then
+                echo "Health check passed."
+                break
+              fi
+
+              if [ "$i" -eq 30 ]; then
+                echo "Health check failed."
+                echo "Docker compose status:"
+                docker compose ps
+
+                echo "Backend logs:"
+                docker compose logs --tail=200 backend
+
+                echo "Frontend logs:"
+                docker compose logs --tail=100 frontend
+
+                exit 1
+              fi
+
+              echo "Service not ready yet. Retry $i/30..."
+              sleep 3
+            done
+
+            # 6. 清理沒有被標籤的舊 Image，避免 VPS 儲存空間爆滿
             docker image prune -f
 
-            # 6. 顯示目前容器狀態，方便 GitHub Actions log 檢查
+            # 7. 顯示目前容器狀態，方便 GitHub Actions log 檢查
             docker compose ps
