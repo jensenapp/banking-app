@@ -91,7 +91,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     private String parseJwt(HttpServletRequest request) {
         // 呼叫 JwtUtils 中的方法來完成實際的提取邏輯。
         String jwt = jwtUtils.getJwtFromHeader(request);
-        logger.debug("AuthTokenFilter.java: 提取到的 JWT: {}", jwt);
+        logger.debug("Authorization header received");
         return jwt;
     }
 }
