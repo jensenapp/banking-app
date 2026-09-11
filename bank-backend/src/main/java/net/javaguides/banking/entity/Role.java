@@ -2,10 +2,7 @@ package net.javaguides.banking.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -13,7 +10,8 @@ import java.util.Set;
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
+@Getter
+@Setter
 @Table(name = "roles")
 public class Role{
 
@@ -27,12 +25,24 @@ public class Role{
     @Column(length = 20, name = "role_name")
     private AppRole roleName;
 
-    @OneToMany(mappedBy = "role", fetch = FetchType.LAZY, cascade = {CascadeType.MERGE})
+    @OneToMany(mappedBy = "role", fetch = FetchType.LAZY)
     @JsonBackReference
-    @ToString.Exclude
     private Set<User> users = new HashSet<>();
 
     public Role(AppRole roleName) {
         this.roleName = roleName;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Role)) return false;
+        Role role = (Role) o;
+        return roleId != null && roleId.equals(role.getRoleId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }
