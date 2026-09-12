@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import net.javaguides.banking.exception.ErrorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,13 +23,14 @@ import java.time.LocalDateTime;
  * 我們在這裡統一回傳 HTTP 401 (Unauthorized) 狀態碼，以及標準化的 ErrorDetails JSON 錯誤格式。
  */
 @Component
+@RequiredArgsConstructor
 public class AuthEntryPointJwt implements AuthenticationEntryPoint {
 
     // 建立 Logger，用於記錄系統日誌
     private static final Logger logger = LoggerFactory.getLogger(AuthEntryPointJwt.class);
 
     // 建立 Jackson 的 ObjectMapper，用於將 Java 物件 (ErrorDetails) 序列化轉成 JSON 格式字串
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     /**
      * 當身份驗證失敗時，Spring Security 會自動呼叫這個 commence 方法。
