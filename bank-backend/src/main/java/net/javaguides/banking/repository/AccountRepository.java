@@ -17,8 +17,7 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     @Query("select a from Account a where a.id=:id")
     Optional<Account> findByIdForUpdate(@Param("id") Long id);
 
-    @Query("select a from Account  a where a.user.userId=:userId")
-    List<Account> findAllAccountsByUserId(@Param("userId") Long userId);
+   List<Account> findAllByUserUserId(Long userId);
 
 
     Long countByUser_UserId(Long userId);

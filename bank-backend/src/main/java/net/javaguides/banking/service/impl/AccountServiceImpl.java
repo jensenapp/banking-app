@@ -117,7 +117,7 @@ public class AccountServiceImpl implements AccountService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetailsImpl userDetails=(UserDetailsImpl) authentication.getPrincipal();
         Long userId = userDetails.getId();
-        List<AccountDto> accountLists = accountRepository.findAllAccountsByUserId(userId).stream().map(account -> accountMapper.mapTOAccountDto(account)).toList();
+        List<AccountDto> accountLists = accountRepository.findAllByUserUserId(userId).stream().map(account -> accountMapper.mapTOAccountDto(account)).toList();
         return accountLists;
     }
 
