@@ -9,6 +9,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -191,5 +195,119 @@ class AccountRepositoryTest {
                         account.getAccountHolderName()
                                 .equals("John Account 1")
                 ));
+    }
+
+    @Test
+    @DisplayName("測試-依不存在的 User ID 查詢 Account，應回傳空 List")
+    void findAllByUserUserId_noResult() {
+
+        // =========================
+        // Arrange
+        // =========================
+
+        // 建立一個不存在於資料庫中的 User ID
+        Long nonExistingUserId = 999999L;
+
+        // =========================
+        // Act
+        // =========================
+
+        List<Account> accounts =
+                accountRepository.findAllByUserUserId(nonExistingUserId);
+
+        // =========================
+        // Assert
+        // =========================
+
+        // 查詢結果不應該是 null
+        assertNotNull(accounts);
+
+        // 不應該查到任何 Account
+        assertTrue(accounts.isEmpty());
+    }
+
+    @Test
+    @DisplayName("測試-Pagination 分頁查詢 Account 成功")
+    void pagination_success() {
+
+        // =========================
+        // Arrange
+        // =========================
+
+        // 建立 User
+        User user = new User();
+        user.setUsername("Tom");
+        user.setEmail("tom@test.com");
+        user.setRealName("Tom");
+
+        entityManager.persist(user);
+        entityManager.flush();
+
+        // 建立 5 個 Account
+        for (int i = 1; i <= 5; i++) {
+
+            Account account = new Account();
+            account.setAccountHolderName("Tom Account " + i);
+            account.setBalance(new BigDecimal(i + "000.00"));
+            account.setUser(user);
+
+            accountRepository.save(account);
+        }
+
+        entityManager.flush();
+        entityManager.clear();
+
+
+        // =========================
+        // Act
+        // =========================
+
+        // page = 0
+        // size = 2
+        Pageable pageable = PageRequest.of(
+                0,
+                2,
+                Sort.by("id").ascending()
+        );
+
+        Page<Account> accountPage =
+                accountRepository.findAll(pageable);
+
+
+        // =========================
+        // Assert
+        // =========================
+
+        // 這一頁應該只有 2 筆
+        assertEquals(2, accountPage.getContent().size());
+
+        // 總共有 5 筆
+        assertEquals(5, accountPage.getTotalElements());
+
+        // 5 筆、每頁 2 筆 => 總共 3 頁
+        assertEquals(3, accountPage.getTotalPages());
+
+        // 現在是第 0 頁
+        assertEquals(0, accountPage.getNumber());
+
+        // 每頁大小為 2
+        assertEquals(2, accountPage.getSize());
+
+        // 因為 5 筆資料，第 0 頁後面還有資料
+        assertTrue(accountPage.hasNext());
+
+        // 第 0 頁不是最後一頁
+        assertFalse(accountPage.isLast());
+
+        // 確認第一頁內容
+        assertEquals(
+                "Tom Account 1",
+                accountPage.getContent().get(0).getAccountHolderName()
+        );
+
+        assertEquals(
+                "Tom Account 2",
+                accountPage.getContent().get(1).getAccountHolderName()
+        );
     }
 }
