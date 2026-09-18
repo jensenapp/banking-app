@@ -310,4 +310,82 @@ class AccountRepositoryTest {
                 accountPage.getContent().get(1).getAccountHolderName()
         );
     }
+
+    @Test
+    @DisplayName("測試-使用 Pessimistic Write Lock 依 ID 查詢 Account 成功")
+    void findByIdForUpdate_success() {
+
+        // =========================
+        // Arrange
+        // =========================
+
+        // 建立 User
+        User user = new User();
+        user.setUsername("Tom");
+        user.setEmail("tom@test.com");
+        user.setRealName("Tom");
+
+        entityManager.persist(user);
+        entityManager.flush();
+
+        // 取得 User ID
+        Long userId = user.getUserId();
+
+        assertNotNull(userId);
+
+        // 建立 Account
+        Account account = new Account();
+        account.setAccountHolderName("Tom Account");
+        account.setBalance(new BigDecimal("1000.00"));
+        account.setUser(user);
+
+        accountRepository.save(account);
+
+        entityManager.flush();
+
+        // 取得 Account ID
+        Long accountId = account.getId();
+
+        assertNotNull(accountId);
+
+        // 清除 Persistence Context
+        // 確保 findByIdForUpdate() 真的重新從 DB 查詢
+        entityManager.clear();
+
+
+        // =========================
+        // Act
+        // =========================
+
+        Account foundAccount = accountRepository
+                .findByIdForUpdate(accountId)
+                .orElseThrow();
+
+
+        // =========================
+        // Assert
+        // =========================
+
+        // 確認查詢到正確的 Account ID
+        assertEquals(accountId, foundAccount.getId());
+
+        // 確認 Account Holder Name
+        assertEquals(
+                "Tom Account",
+                foundAccount.getAccountHolderName()
+        );
+
+        // 確認 Balance
+        assertEquals(
+                0,
+                new BigDecimal("1000.00")
+                        .compareTo(foundAccount.getBalance())
+        );
+
+        // 確認 User 關聯正確
+        assertEquals(
+                userId,
+                foundAccount.getUser().getUserId()
+        );
+    }
 }
