@@ -37,6 +37,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 
@@ -252,79 +253,78 @@ public class AccountServiceImpl implements AccountService {
     @Override
     @Transactional
     public void transferFunds(TransferFundDTO transferFundDTO) {
-        logger.info("從帳號{}向帳號{},發起金額為{}的轉帳", transferFundDTO.fromAccountId(), transferFundDTO.toAccountId(), transferFundDTO.amount());
-        Long fromAccountId = transferFundDTO.fromAccountId();
-        Long toAccountId = transferFundDTO.toAccountId();
 
-
-        if (fromAccountId.equals(toAccountId)) {
-            logger.error("轉帳失敗,不能轉帳給相同的帳號{}", fromAccountId);
-            throw new AccountException("不能轉帳到相同帳戶");
-        }
-
+        String idempotencyKey = transferFundDTO.idempotencyKey();
         IdempotencyRecord idempotencyRecord = new IdempotencyRecord();
-        idempotencyRecord.setIdempotencyKey(transferFundDTO.idempotencyKey());
+        idempotencyRecord.setIdempotencyKey(idempotencyKey);
         idempotencyRecord.setCreatedAt(LocalDateTime.now());
+
+//        Optional<IdempotencyRecord> byIdempotencyKey = idempotencyRepository.findByIdempotencyKey(idempotencyKey);
+//
+//        if (byIdempotencyKey.isPresent()){
+//            throw new RuntimeException("重複轉帳請求");
+//        }
+//
+//        idempotencyRepository.save(idempotencyRecord);
+
+//原本的 find → save 在「並發請求」下存在 Race Condition；
+// 新的 saveAndFlush → DB UNIQUE 把最後的判斷交給 Database，因此能真正防止重複 Idempotency Key。
 
         try {
             idempotencyRepository.saveAndFlush(idempotencyRecord);
         } catch (DataIntegrityViolationException e) {
-            logger.warn("偵測到重複轉帳請求，idempotencyKey={}",transferFundDTO.idempotencyKey());
-            throw new AccountException("Duplicate transfer request");
+            logger.warn("偵測到重復轉帳請求,IdempotencyKey={}",idempotencyKey);
+            throw new AccountException("轉帳重複請求");
         }
 
-        Account account1, account2;
 
-        if (fromAccountId < toAccountId) {
-            account1 = accountRepository.findByIdForUpdate(fromAccountId).orElseThrow(() -> new AccountNotFoundException("Account does not exist"));
-            account2 = accountRepository.findByIdForUpdate(toAccountId).orElseThrow(() -> new AccountNotFoundException("Account does not exist"));
-        } else {
-            account2 = accountRepository.findByIdForUpdate(toAccountId).orElseThrow(() -> new AccountNotFoundException("Account does not exist"));
-            account1 = accountRepository.findByIdForUpdate(fromAccountId).orElseThrow(() -> new AccountNotFoundException("Account does not exist"));
-        }
-        // 找出哪個是轉出帳戶，哪個是轉入帳戶
+        Long fromAccountId = transferFundDTO.fromAccountId();
+        Long toAccountId = transferFundDTO.toAccountId();
 
-        Account fromAccount = account1.getId().equals(fromAccountId) ? account1 : account2;
-        Account toAccount = account2.getId().equals(toAccountId) ? account2 : account1;
-
-
-//        // 1. 檢索轉出帳戶
-//        Account fromAccount = accountRepository.findById(transferFundDTO.fromAccountId()).orElseThrow(() -> new AccountException("Account does not exist"));
-//        // 2. 檢索轉入帳戶
-//         Account toAccount = accountRepository.findById(transferFundDTO.toAccountId()).orElseThrow(() -> new AccountException("Account does not exist"));
-
-
-        if (fromAccount.getBalance().compareTo(transferFundDTO.amount()) < 0) {
-            logger.error("轉帳失敗,帳戶{}餘額{}小於欲轉金額{}", fromAccountId, fromAccount.getBalance(), transferFundDTO.amount());
-            throw new InsufficientAmountException("Insufficient amount");
+        if (fromAccountId.equals(toAccountId)){
+            throw new AccountException("不能轉帳給自己");
         }
 
-        // 3. 從轉出帳戶扣款
-        fromAccount.setBalance(fromAccount.getBalance().subtract(transferFundDTO.amount()));
-        // 4. 轉入帳戶存入金額
-        toAccount.setBalance(toAccount.getBalance().add(transferFundDTO.amount()));
-        // 5. 儲存更新
-        accountRepository.save(fromAccount);
-        accountRepository.save(toAccount);
 
-        // 記錄轉出方交易（TRANSFER_OUT）
+        Account from;
+        Account to;
+
+        if (fromAccountId<toAccountId){
+            from=accountRepository.findByIdForUpdate(fromAccountId).orElseThrow(() -> new AccountNotFoundException("ACCOUNT NOT FOUND"));
+            to=accountRepository.findByIdForUpdate(toAccountId).orElseThrow(() -> new AccountNotFoundException("ACCOUNT NOT FOUND"));
+        }else {
+            to=accountRepository.findByIdForUpdate(toAccountId).orElseThrow(() -> new AccountNotFoundException("ACCOUNT NOT FOUND"));
+            from=accountRepository.findByIdForUpdate(fromAccountId).orElseThrow(() -> new AccountNotFoundException("ACCOUNT NOT FOUND"));
+        }
+
+        if (from.getBalance().compareTo(transferFundDTO.amount())<0){
+            throw new AccountException("餘額不足,無法轉帳");
+        }
+
+        from.setBalance(from.getBalance().subtract(transferFundDTO.amount()));
+        to.setBalance(to.getBalance().add(transferFundDTO.amount()));
+
+        accountRepository.save(from);
+        accountRepository.save(to);
+
         Transaction fromTransaction = new Transaction();
 
-        fromTransaction.setAccountId(transferFundDTO.fromAccountId());
+        fromTransaction.setAccountId(fromAccountId);
         fromTransaction.setAmount(transferFundDTO.amount());
-        fromTransaction.setTimestamp(LocalDateTime.now());
         fromTransaction.setTransactionType(TransactionType.TRANSFER_OUT);
-        transactionRepository.save(fromTransaction);
+        fromTransaction.setTimestamp(LocalDateTime.now());
 
-        // 記錄轉入方交易（TRANSFER_IN）
         Transaction toTransaction = new Transaction();
 
-        toTransaction.setAccountId(transferFundDTO.toAccountId());
+        toTransaction.setAccountId(toAccountId);
         toTransaction.setAmount(transferFundDTO.amount());
-        toTransaction.setTimestamp(LocalDateTime.now());
         toTransaction.setTransactionType(TransactionType.TRANSFER_IN);
+        toTransaction.setTimestamp(LocalDateTime.now());
+
+        transactionRepository.save(fromTransaction);
+
         transactionRepository.save(toTransaction);
-        logger.info("資金從帳戶 {} 轉至帳戶 {} 已成功完成", fromAccountId, toAccountId);
+
 
     }
 

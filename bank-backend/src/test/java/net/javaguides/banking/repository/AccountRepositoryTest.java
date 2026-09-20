@@ -16,6 +16,7 @@ import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 @DataJpaTest
@@ -388,4 +389,181 @@ class AccountRepositoryTest {
                 foundAccount.getUser().getUserId()
         );
     }
+
+    @Test
+    @DisplayName("測試-Pessimistic Write Lock 查詢不存在的 Account，應回傳空 Optional")
+    void findByIdForUpdate_notFound() {
+
+        // =========================
+        // Arrange
+        // =========================
+
+        // 建立一個不存在於資料庫中的 Account ID
+        Long nonExistingAccountId = 999999L;
+
+        // =========================
+        // Act
+        // =========================
+
+        Optional<Account> result =
+                accountRepository.findByIdForUpdate(nonExistingAccountId);
+
+        // =========================
+        // Assert
+        // =========================
+
+        // 查詢不存在的 Account，應該回傳 Optional.empty()
+        assertTrue(result.isEmpty());
+    }
+
+
+    @Test
+    @DisplayName("測試-依 User ID 計算 Account 數量成功")
+    void countByUserUserId_success() {
+
+        // Arrange
+        User userA = new User();
+        userA.setUsername("Tom");
+        userA.setEmail("tom@test.com");
+        userA.setRealName("Tom");
+
+        entityManager.persist(userA);
+        entityManager.flush();
+
+        // 取得 DB 產生的 User ID
+        Long userId = userA.getUserId();
+
+        Account account1 = new Account();
+        account1.setAccountHolderName("Tom Account 1");
+        account1.setBalance(new BigDecimal("1000.00"));
+        account1.setUser(userA);
+
+        Account account2 = new Account();
+        account2.setAccountHolderName("Tom Account 2");
+        account2.setBalance(new BigDecimal("2000.00"));
+        account2.setUser(userA);
+
+        accountRepository.save(account1);
+        accountRepository.save(account2);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // Act
+        Long count = accountRepository.countByUser_UserId(userId);
+
+        // Assert
+        assertEquals(2L, count);
+    }
+
+    @Test
+    @DisplayName("測試-依不存在的 User ID 計算 Account 數量，應回傳 0")
+    void countByUserUserId_noResult() {
+
+        // Arrange
+        Long nonExistingUserId = 999999L;
+
+        // Act
+        Long count =
+                accountRepository.countByUser_UserId(nonExistingUserId);
+
+        // Assert
+        assertEquals(0L, count);
+    }
+
+    @Test
+    @DisplayName("測試-Account 存在且屬於指定 User，應回傳 true")
+    void existsByIdAndUserUserId_success() {
+
+        // Arrange
+        User user = new User();
+        user.setUsername("Tom");
+        user.setEmail("tom@test.com");
+        user.setRealName("Tom");
+
+        entityManager.persist(user);
+        entityManager.flush();
+
+        Account account = new Account();
+        account.setAccountHolderName("Tom Account");
+        account.setBalance(new BigDecimal("1000.00"));
+        account.setUser(user);
+
+        accountRepository.save(account);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // Act
+        boolean exists = accountRepository.existsByIdAndUser_UserId(
+                account.getId(),
+                user.getUserId()
+        );
+
+        // Assert
+        assertTrue(exists);
+    }
+    @Test
+    @DisplayName("測試-Account 存在但不屬於指定 User，應回傳 false")
+    void existsByIdAndUserUserId_wrongUser() {
+
+        // Arrange
+        User userA = new User();
+        userA.setUsername("Tom");
+        userA.setEmail("tom@test.com");
+        userA.setRealName("Tom");
+
+        User userB = new User();
+        userB.setUsername("John");
+        userB.setEmail("john@test.com");
+        userB.setRealName("John");
+
+        entityManager.persist(userA);
+        entityManager.persist(userB);
+        entityManager.flush();
+
+        Account account = new Account();
+        account.setAccountHolderName("Tom Account");
+        account.setBalance(new BigDecimal("1000.00"));
+        account.setUser(userA);
+
+        accountRepository.save(account);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // Act
+        boolean exists = accountRepository.existsByIdAndUser_UserId(
+                account.getId(),
+                userB.getUserId()
+        );
+
+        // Assert
+        assertFalse(exists);
+    }
+    @Test
+    @DisplayName("測試-Account 不存在，應回傳 false")
+    void existsByIdAndUserUserId_notFound() {
+
+        // Arrange
+        User user = new User();
+        user.setUsername("Tom");
+        user.setEmail("tom@test.com");
+        user.setRealName("Tom");
+
+        entityManager.persist(user);
+        entityManager.flush();
+
+        Long nonExistingAccountId = 999999L;
+
+        // Act
+        boolean exists = accountRepository.existsByIdAndUser_UserId(
+                nonExistingAccountId,
+                user.getUserId()
+        );
+
+        // Assert
+        assertFalse(exists);
+    }
+
 }
