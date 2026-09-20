@@ -7,6 +7,7 @@ import net.javaguides.banking.entity.Account;
 import net.javaguides.banking.entity.Transaction;
 import net.javaguides.banking.entity.User;
 import net.javaguides.banking.enums.TransactionType;
+import net.javaguides.banking.exception.AccountException;
 import net.javaguides.banking.exception.AccountNotFoundException;
 import net.javaguides.banking.exception.InsufficientAmountException;
 import net.javaguides.banking.repository.AccountRepository;
@@ -39,6 +40,97 @@ class AccountServiceIntegrationTest {
 
     @Autowired
     private TransactionRepository transactionRepository;
+
+
+    @Test
+    @DisplayName("Service Integration Test - 轉帳失敗_餘額不足")
+    void transfer_insufficientBalance() {
+
+        // Arrange
+        User fromUser = new User();
+        fromUser.setUsername("Tom");
+        fromUser.setEmail("tom@tom.com");
+        fromUser.setRealName("tom lee");
+
+        User toUser = new User();
+        toUser.setUsername("Leo");
+        toUser.setEmail("leo@leo.com");
+        toUser.setRealName("leo lee");
+
+        userRepository.save(fromUser);
+        userRepository.save(toUser);
+
+        Account fromAccount = new Account();
+        fromAccount.setUser(fromUser);
+        fromAccount.setBalance(new BigDecimal("1000.00"));
+
+        Account toAccount = new Account();
+        toAccount.setUser(toUser);
+        toAccount.setBalance(new BigDecimal("2000.00"));
+
+        accountRepository.save(fromAccount);
+        accountRepository.save(toAccount);
+
+        TransferFundDTO transferFundDTO =
+                new TransferFundDTO(
+                        fromAccount.getId(),
+                        toAccount.getId(),
+                        new BigDecimal("5500.00"),
+                        "key"
+                );
+
+        // Act
+        AccountException exception =
+                assertThrows(
+                        AccountException.class,
+                        () -> accountService.transferFunds(transferFundDTO)
+                );
+
+        // Assert 1：Exception
+        assertEquals(
+                "餘額不足,無法轉帳",
+                exception.getMessage()
+        );
+
+        // Assert 2：轉出帳戶餘額不變
+        Account savedFromAccount =
+                accountRepository.findById(fromAccount.getId()).orElseThrow();
+
+        assertEquals(
+                0,
+                new BigDecimal("1000.00")
+                        .compareTo(savedFromAccount.getBalance()),
+                "餘額不足時，轉出帳戶餘額不應改變"
+        );
+
+        // Assert 3：轉入帳戶餘額不變
+        Account savedToAccount =
+                accountRepository.findById(toAccount.getId()).orElseThrow();
+
+        assertEquals(
+                0,
+                new BigDecimal("2000.00")
+                        .compareTo(savedToAccount.getBalance()),
+                "餘額不足時，轉入帳戶餘額不應改變"
+        );
+
+        // Assert 4：不應建立 Transaction
+        List<Transaction> fromTransactions =
+                transactionRepository.findByAccountId(fromAccount.getId());
+
+        List<Transaction> toTransactions =
+                transactionRepository.findByAccountId(toAccount.getId());
+
+        assertTrue(
+                fromTransactions.isEmpty(),
+                "餘額不足時，不應建立 TRANSFER_OUT"
+        );
+
+        assertTrue(
+                toTransactions.isEmpty(),
+                "餘額不足時，不應建立 TRANSFER_IN"
+        );
+    }
 
     @Test
     @DisplayName("Service Integration Test - 轉帳成功")
