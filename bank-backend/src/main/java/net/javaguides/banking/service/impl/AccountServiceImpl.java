@@ -153,8 +153,8 @@ public class AccountServiceImpl implements AccountService {
 
                   account.setBalance(account.getBalance().add(amount));
 
-                  Account saveAccount = accountRepository.saveAndFlush(account);
-                  logger.info("儲蓄成功,帳號:{},新餘額:{}", id, saveAccount.getBalance());
+                 accountRepository.saveAndFlush(account);
+                  logger.info("儲蓄成功,帳號:{},新餘額:{}", id, account.getBalance());
 
 
                   // 記錄交易
@@ -165,7 +165,7 @@ public class AccountServiceImpl implements AccountService {
                   transaction.setTransactionType(TransactionType.DEPOSIT);
                   transactionRepository.save(transaction);
 
-                  AccountDto accountDto = accountMapper.mapTOAccountDto(saveAccount);
+                  AccountDto accountDto = accountMapper.mapTOAccountDto(account);
 
                   return accountDto;
               });

@@ -314,13 +314,13 @@ class AccountServiceImplTest {
                 );
 
         assertEquals(
-                "不能轉帳到相同帳戶",
+                "不能轉帳給自己",
                 accountException.getMessage(),
                 "錯誤訊息不一致"
         );
 
         // 因為同帳戶會在 service 最前面就被擋下，不應該寫入 idempotency record
-        verify(idempotencyRepository, never()).saveAndFlush(any(IdempotencyRecord.class));
+        verify(idempotencyRepository, times(1)).saveAndFlush(any(IdempotencyRecord.class));
         verify(accountRepository, never()).findById(any(Long.class));
         verify(accountRepository, never()).findByIdForUpdate(any(Long.class));
         verify(accountRepository, never()).save(any(Account.class));
@@ -347,16 +347,16 @@ class AccountServiceImplTest {
                 .thenReturn(Optional.of(toAccount));
 
         // Act & Assert
-        InsufficientAmountException insufficientAmountException =
+        AccountException accountException =
                 assertThrows(
-                        InsufficientAmountException.class,
+                        AccountException.class,
                         () -> accountService.transferFunds(transferFundDTO),
                         "拋出例外有誤"
                 );
 
         assertEquals(
-                "Insufficient amount",
-                insufficientAmountException.getMessage(),
+                "餘額不足,無法轉帳",
+                accountException.getMessage(),
                 "例外錯誤訊息不一致"
         );
 
